@@ -1,5 +1,6 @@
 // GRUPO ALUMNOS — "Entregas": repositorio del grupo, por hito del cuatrimestre, con versiones y devoluciones.
-// Lo ven el grupo, sus mentores (los que tienen reuniones con el proyecto) y los profesores.
+// La entrega grupal la ven el grupo, sus mentores y los profesores. La individual (si el hito la pide),
+// solo el alumno y los profesores.
 import { Suspense } from "react";
 import Link from "next/link";
 import { requireRol } from "@/lib/auth";
@@ -8,15 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
-import { publicarDevolucion } from "./_acciones";
+import { guardarTipoHito } from "./_acciones";
 import { SubirEntrega } from "./_components/subir-entrega";
+import { Versiones, type Version } from "./_components/versiones";
+
+const TIPOS = { grupal: "Grupal", individual: "Individual", ambas: "Grupal e individual" } as const;
+type Tipo = keyof typeof TIPOS;
+const SELECT_ENTREGA =
+  "*, subidor:personas!alumnos_entregas_subida_por_fkey(nombre), alumnos_entregas_devoluciones(id, texto, created_at, respuesta_a, autor_id, autor:personas!alumnos_entregas_devoluciones_autor_id_fkey(nombre, rol))";
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: ZONA });
-const fechaHora = (iso: string) =>
-  new Date(iso).toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONA });
-const tamano = (bytes: number) =>
-  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1).replace(".", ",")} MB`;
 
 async function Aviso({ searchParams }: Pick<PageProps<"/alumnos/entregas">, "searchParams">) {
   const { error } = await searchParams;
@@ -60,43 +63,44 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
 
   const { proyecto: elegido, hito: hitoElegido } = await searchParams;
   const proyecto = proyectos.find((p) => p.id === elegido) ?? proyectos[0];
-  const puedeSubir = persona.rol === "alumno";
-  const puedeDevolver = persona.rol !== "alumno";
-  const fueYo = (autorId: string | null) => autorId === persona.id;
+  const esAlumno = persona.rol === "alumno";
+  const esProfesor = persona.rol === "admin";
 
-  const [eventos, entregas] = await Promise.all([
+  const [eventos, tipos, grupales, integrantes] = await Promise.all([
     supabase.from("eventos").select("id, nombre, inicio").order("inicio"),
-    supabase
-      .from("alumnos_entregas")
-      .select(
-        "*, subidor:personas!alumnos_entregas_subida_por_fkey(nombre), alumnos_entregas_devoluciones(id, texto, created_at, respuesta_a, autor_id, autor:personas!alumnos_entregas_devoluciones_autor_id_fkey(nombre, rol))",
-      )
-      .eq("proyecto_id", proyecto.id)
-      .order("version", { ascending: false }),
+    supabase.from("alumnos_hitos_tipo").select("evento_id, tipo"),
+    supabase.from("alumnos_entregas").select(SELECT_ENTREGA).eq("proyecto_id", proyecto.id).order("version", { ascending: false }),
+    supabase.from("proyecto_integrantes").select("persona_id, personas(nombre)").eq("proyecto_id", proyecto.id),
   ]);
-  if (eventos.error) throw eventos.error;
-  if (entregas.error) throw entregas.error;
+  for (const r of [eventos, tipos, grupales, integrantes]) if (r.error) throw r.error;
+
+  // Individuales: el alumno ve las suyas; los profesores, las de cada integrante del grupo elegido.
+  const idsIndividuales = esAlumno ? [persona.id] : esProfesor ? integrantes.data!.map((i) => i.persona_id) : [];
+  const individuales = idsIndividuales.length
+    ? await supabase.from("alumnos_entregas").select(SELECT_ENTREGA).in("persona_id", idsIndividuales).order("version", { ascending: false })
+    : { data: [], error: null };
+  if (individuales.error) throw individuales.error;
+
+  const todas = [...grupales.data!, ...individuales.data] as (Version & { evento_id: string; persona_id: string | null })[];
+  const tipoDe = new Map(tipos.data!.map((t) => [t.evento_id, t.tipo as Tipo]));
 
   // Links de descarga válidos por una hora.
-  const paths = entregas.data.map((e) => e.archivo_path);
+  const paths = todas.map((e) => e.archivo_path);
   const firmadas = paths.length ? await supabase.storage.from("alumnos-entregas").createSignedUrls(paths, 3600) : { data: [] };
-  const linkDe = new Map((firmadas.data ?? []).map((f) => [f.path, f.signedUrl]));
+  const linkDe = new Map((firmadas.data ?? []).flatMap((f) => (f.path && f.signedUrl ? [[f.path, f.signedUrl] as const] : [])));
 
   // Hito abierto al entrar: el elegido (al volver de una acción) o el próximo que todavía no pasó.
   const hoy = new Date(new Date().toLocaleDateString("en-CA", { timeZone: ZONA })).getTime();
-  const proximo = eventos.data.find((ev) => new Date(ev.inicio).getTime() >= hoy) ?? eventos.data.at(-1);
-  const abierto = eventos.data.some((ev) => ev.id === hitoElegido) ? hitoElegido : proximo?.id;
-
-  const autorDevolucion = (a: { nombre: string; rol: string } | null) =>
-    !a ? "Alguien" : a.rol === "admin" ? "Profesores" : a.rol === "mentor" ? `${a.nombre} (mentor)` : a.nombre;
+  const proximo = eventos.data!.find((ev) => new Date(ev.inicio).getTime() >= hoy) ?? eventos.data!.at(-1);
+  const abierto = eventos.data!.some((ev) => ev.id === hitoElegido) ? hitoElegido : proximo?.id;
 
   return (
     <>
       {titulo}
       <p className="mb-6 max-w-2xl text-sm text-[#666]">
-        Las entregas del grupo para cada hito del cuatrimestre. Cada vez que suben un archivo queda como una versión
-        nueva, sin borrar las anteriores, y profesores y mentores dejan su devolución sobre cada una. Tocá un hito para
-        abrirlo o cerrarlo.
+        Las entregas para cada hito del cuatrimestre. Cada vez que se sube un archivo queda como una versión nueva, sin
+        borrar las anteriores, y profesores y mentores dejan su devolución sobre cada una. Algunos hitos piden además una
+        entrega individual, que ven solo vos y los profesores. Tocá un hito para abrirlo o cerrarlo.
       </p>
 
       {proyectos.length > 1 && (
@@ -116,133 +120,81 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
       <Suspense><Aviso searchParams={searchParams} /></Suspense>
 
       <h2 className="mb-4 font-serif text-xl">{proyecto.nombre}</h2>
-      {eventos.data.length === 0 && <p className="text-sm text-[#666]">Todavía no hay hitos cargados en el cuatrimestre.</p>}
+      {eventos.data!.length === 0 && <p className="text-sm text-[#666]">Todavía no hay hitos cargados en el cuatrimestre.</p>}
 
       <ol className="grid max-w-3xl gap-3">
-        {eventos.data.map((ev) => {
-          const versiones = entregas.data.filter((e) => e.evento_id === ev.id);
-          const ocultos = (
-            <>
-              <input type="hidden" name="proyecto_id" value={proyecto.id} />
-              <input type="hidden" name="evento_id" value={ev.id} />
-            </>
-          );
+        {eventos.data!.map((ev) => {
+          const tipo: Tipo = tipoDe.get(ev.id) ?? "grupal";
+          const pideGrupal = tipo !== "individual";
+          const pideIndividual = tipo !== "grupal";
+          const delGrupo = todas.filter((e) => e.evento_id === ev.id && !e.persona_id);
+          const individualDe = (id: string) => todas.filter((e) => e.evento_id === ev.id && e.persona_id === id);
+          const versionesVisibles = (pideGrupal ? delGrupo.length : 0) + (pideIndividual ? idsIndividuales.flatMap(individualDe).length : 0);
+          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id };
           return (
             <li key={ev.id}>
               <details open={ev.id === abierto} className="group border bg-card">
-                <summary className="flex cursor-pointer list-none items-center gap-3 px-6 py-4 [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 px-6 py-4 [&::-webkit-details-marker]:hidden">
                   <ChevronDown className="size-4 shrink-0 -rotate-90 text-[#666] transition-transform group-open:rotate-0" aria-hidden />
                   <span className="font-serif text-lg">{ev.nombre}</span>
                   {ev.id === proximo?.id && <Badge variant="outline">Próximo</Badge>}
                   <span className="ml-auto flex items-center gap-3 text-sm text-[#666]">
-                    <span>{versiones.length === 0 ? "Sin entregar" : versiones.length === 1 ? "1 versión" : `${versiones.length} versiones`}</span>
+                    <span>{TIPOS[tipo]}</span>
+                    <span>·</span>
+                    <span>{versionesVisibles === 0 ? "Sin entregar" : versionesVisibles === 1 ? "1 versión" : `${versionesVisibles} versiones`}</span>
+                    <span>·</span>
                     <span>{fecha(ev.inicio)}</span>
                   </span>
                 </summary>
 
-                <div className="grid gap-4 border-t px-6 py-5">
-                  {versiones.length === 0 ? (
-                    <p className="text-sm text-[#666]">Todavía no hay nada entregado para este hito.</p>
-                  ) : (
-                    <ul className="grid gap-3">
-                      {versiones.map((v, i) => {
-                        const devoluciones = [...v.alumnos_entregas_devoluciones].sort((a, b) => a.created_at.localeCompare(b.created_at));
-                        const raices = devoluciones.filter((d) => !d.respuesta_a);
-                        return (
-                          <li key={v.id} className={cn("grid gap-2 border bg-background p-4", i > 0 && "opacity-80")}>
-                            <div className="flex flex-wrap items-center gap-2 text-sm">
-                              <Badge variant={i === 0 ? "default" : "outline"}>{i === 0 ? `Versión ${v.version} · la última` : `Versión ${v.version}`}</Badge>
-                              {linkDe.get(v.archivo_path) ? (
-                                <a href={linkDe.get(v.archivo_path)!} className="underline underline-offset-4 hover:text-[#666]">
-                                  {v.nombre_archivo}
-                                </a>
-                              ) : (
-                                <span>{v.nombre_archivo}</span>
-                              )}
-                              <span className="text-[#666]">
-                                {tamano(v.tamano_bytes)} · {v.subidor?.nombre ?? "alguien del grupo"} · {fechaHora(v.created_at)}
-                              </span>
-                            </div>
-                            {v.nota && <p className="border-l-2 pl-3 text-sm">{v.nota}</p>}
-
-                            {raices.length > 0 && (
-                              <ul className="grid gap-4 border-t pt-3">
-                                {raices.map((d) => {
-                                  const respuestas = devoluciones.filter((r) => r.respuesta_a === d.id);
-                                  // Contestan el grupo, quien dejó la devolución y los profesores.
-                                  const puedoContestar = persona.rol !== "mentor" || fueYo(d.autor_id);
-                                  return (
-                                    <li key={d.id} className="grid gap-2 text-sm">
-                                      <div className="grid gap-1">
-                                        <span className="text-xs text-[#666]">
-                                          <span className="font-medium text-primary">Devolución de {autorDevolucion(d.autor)}</span> · {fecha(d.created_at)}
-                                        </span>
-                                        <p className="whitespace-pre-line">{d.texto}</p>
-                                      </div>
-                                      {respuestas.length > 0 && (
-                                        <ul className="grid gap-2 border-l-2 pl-4">
-                                          {respuestas.map((r) => (
-                                            <li key={r.id} className="grid gap-0.5">
-                                              <span className="text-xs text-[#666]">
-                                                <span className="font-medium text-primary">{autorDevolucion(r.autor)}</span> · {fechaHora(r.created_at)}
-                                              </span>
-                                              <p className="whitespace-pre-line">{r.texto}</p>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      )}
-                                      {puedoContestar && (
-                                        <details className="pl-4">
-                                          <summary className="cursor-pointer text-[#666] hover:text-primary">Contestar</summary>
-                                          <form action={publicarDevolucion} className="mt-2 grid gap-2">
-                                            <input type="hidden" name="entrega_id" value={v.id} />
-                                            <input type="hidden" name="respuesta_a" value={d.id} />
-                                            {ocultos}
-                                            <textarea
-                                              name="texto"
-                                              required
-                                              minLength={2}
-                                              maxLength={2000}
-                                              rows={2}
-                                              aria-label="Tu respuesta"
-                                              className="border bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring"
-                                            />
-                                            <div><Button type="submit" size="sm" variant="outline">Enviar respuesta</Button></div>
-                                          </form>
-                                        </details>
-                                      )}
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            )}
-
-                            {puedeDevolver && (
-                              <details className="text-sm">
-                                <summary className="cursor-pointer text-[#666] hover:text-primary">Dejar una devolución</summary>
-                                <form action={publicarDevolucion} className="mt-2 grid gap-2">
-                                  <input type="hidden" name="entrega_id" value={v.id} />
-                                  {ocultos}
-                                  <textarea
-                                    name="texto"
-                                    required
-                                    minLength={2}
-                                    maxLength={2000}
-                                    rows={3}
-                                    aria-label="Devolución"
-                                    className="border bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring"
-                                  />
-                                  <div><Button type="submit" size="sm">Enviar devolución</Button></div>
-                                </form>
-                              </details>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                <div className="grid gap-6 border-t px-6 py-5">
+                  {esProfesor && (
+                    <form action={guardarTipoHito} className="flex flex-wrap items-center gap-2 text-sm">
+                      <input type="hidden" name="evento_id" value={ev.id} />
+                      <input type="hidden" name="proyecto_id" value={proyecto.id} />
+                      <label htmlFor={`tipo-${ev.id}`} className="text-[#666]">Este hito pide entrega:</label>
+                      <select id={`tipo-${ev.id}`} name="tipo" defaultValue={tipo} className="h-8 border bg-background px-2 text-sm">
+                        {(Object.keys(TIPOS) as Tipo[]).map((t) => <option key={t} value={t}>{TIPOS[t]}</option>)}
+                      </select>
+                      <Button type="submit" size="sm" variant="outline">Guardar</Button>
+                    </form>
                   )}
 
-                  {puedeSubir && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={versiones.length > 0} />}
+                  {pideGrupal && (
+                    <section className="grid gap-3">
+                      {pideIndividual && <h3 className="text-sm font-medium">Entrega del grupo</h3>}
+                      <Versiones {...comun} versiones={delGrupo} vacio="Todavía no hay nada entregado por el grupo para este hito." />
+                      {esAlumno && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={delGrupo.length > 0} />}
+                    </section>
+                  )}
+
+                  {pideIndividual && esAlumno && (
+                    <section className="grid gap-3">
+                      <div>
+                        <h3 className="text-sm font-medium">Tu entrega individual</h3>
+                        <p className="text-xs text-[#666]">La ven solo vos y los profesores.</p>
+                      </div>
+                      <Versiones {...comun} versiones={individualDe(persona.id)} vacio="Todavía no subiste tu entrega individual." />
+                      <SubirEntrega proyectoId={null} eventoId={ev.id} hayVersiones={individualDe(persona.id).length > 0} />
+                    </section>
+                  )}
+
+                  {pideIndividual && esProfesor && (
+                    <section className="grid gap-4">
+                      <h3 className="text-sm font-medium">Entregas individuales</h3>
+                      {integrantes.data!.length === 0 && <p className="text-sm text-[#666]">El grupo todavía no tiene integrantes.</p>}
+                      {integrantes.data!.map((i) => (
+                        <div key={i.persona_id} className="grid gap-2">
+                          <p className="text-sm">{i.personas.nombre}</p>
+                          <Versiones {...comun} versiones={individualDe(i.persona_id)} vacio="Todavía no entregó." />
+                        </div>
+                      ))}
+                    </section>
+                  )}
+
+                  {!pideGrupal && persona.rol === "mentor" && (
+                    <p className="text-sm text-[#666]">Este hito es individual: las entregas las ven solo cada alumno y los profesores.</p>
+                  )}
                 </div>
               </details>
             </li>

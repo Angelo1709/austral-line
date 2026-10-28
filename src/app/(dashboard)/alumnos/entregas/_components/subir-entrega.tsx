@@ -10,11 +10,20 @@ import { prepararSubida, registrarEntrega } from "../_acciones";
 
 const LIMITE_MB = 50;
 
-export function SubirEntrega({ proyectoId, eventoId, hayVersiones }: { proyectoId: string; eventoId: string; hayVersiones: boolean }) {
+// proyectoId = null: entrega individual del alumno logueado.
+export function SubirEntrega({
+  proyectoId,
+  eventoId,
+  hayVersiones,
+}: {
+  proyectoId: string | null;
+  eventoId: string;
+  hayVersiones: boolean;
+}) {
   const router = useRouter();
   const [estado, setEstado] = useState<{ subiendo: boolean; error?: string; ok?: string }>({ subiendo: false });
   const [elegido, setElegido] = useState<string | null>(null);
-  const idArchivo = `archivo-${eventoId}`;
+  const idArchivo = `archivo-${eventoId}-${proyectoId ?? "individual"}`;
 
   async function subir(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
