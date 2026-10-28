@@ -71,7 +71,7 @@ export function SubirEntrega({
   return (
     <details className="text-sm">
       <summary className="cursor-pointer font-medium">{hayVersiones ? "Subir una versión nueva" : "Subir la entrega"}</summary>
-      <form onSubmit={subir} className="mt-3 grid gap-3 border bg-background p-4">
+      <form onSubmit={subir} className="mt-3 grid gap-3 border bg-card p-4">
         {/* El input real queda oculto; el recuadro con el ícono es lo que se toca para elegir el archivo. */}
         <input
           id={idArchivo}
@@ -86,7 +86,7 @@ export function SubirEntrega({
         />
         <label
           htmlFor={idArchivo}
-          className="flex cursor-pointer items-center gap-4 border border-dashed bg-card px-4 py-4 hover:border-primary"
+          className="flex cursor-pointer items-center gap-4 border border-dashed bg-background px-4 py-4 hover:border-primary"
         >
           <FileUp className="size-8 shrink-0 text-[#666]" aria-hidden />
           <span className="grid gap-0.5">

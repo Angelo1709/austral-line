@@ -62,7 +62,7 @@ export function Versiones(props: {
         const devoluciones = [...v.alumnos_entregas_devoluciones].sort((a, b) => a.created_at.localeCompare(b.created_at));
         const raices = devoluciones.filter((d) => !d.respuesta_a);
         return (
-          <li key={v.id} className={cn("grid gap-2 border bg-background p-4", i > 0 && "opacity-80")}>
+          <li key={v.id} className={cn("grid gap-2 border bg-card p-4", i > 0 && "opacity-80")}>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Badge variant={i === 0 ? "default" : "outline"}>{i === 0 ? `Versión ${v.version} · la última` : `Versión ${v.version}`}</Badge>
               {linkDe.get(v.archivo_path) ? (

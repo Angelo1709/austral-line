@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import { guardarTipoHito } from "./_acciones";
 import { SubirEntrega } from "./_components/subir-entrega";
 import { Versiones, type Version } from "./_components/versiones";
@@ -24,6 +24,28 @@ const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: 
 async function Aviso({ searchParams }: Pick<PageProps<"/alumnos/entregas">, "searchParams">) {
   const { error } = await searchParams;
   return error ? <p className="mb-6 border bg-card px-4 py-3 text-sm text-destructive">{String(error)}</p> : null;
+}
+
+// Caja de una entrega (del grupo o individual): ícono, título, quién la ve y estado a la derecha.
+function Bloque(props: { icono: LucideIcon; titulo: string; detalle: string; versiones: number; children: React.ReactNode }) {
+  const Icono = props.icono;
+  return (
+    <section className="grid gap-4 border bg-background p-5">
+      <header className="flex flex-wrap items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center border bg-card">
+          <Icono className="size-4" aria-hidden />
+        </span>
+        <span className="grid">
+          <span className="font-serif text-base">{props.titulo}</span>
+          <span className="text-xs text-[#666]">{props.detalle}</span>
+        </span>
+        <Badge variant={props.versiones ? "default" : "outline"} className="ml-auto">
+          {props.versiones ? `Entregada · versión ${props.versiones}` : "Pendiente"}
+        </Badge>
+      </header>
+      {props.children}
+    </section>
+  );
 }
 
 export default async function Entregas({ searchParams }: PageProps<"/alumnos/entregas">) {
@@ -147,7 +169,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                   </span>
                 </summary>
 
-                <div className="grid gap-6 border-t px-6 py-5">
+                <div className="grid gap-4 border-t px-6 py-5">
                   {esProfesor && (
                     <form action={guardarTipoHito} className="flex flex-wrap items-center gap-2 text-sm">
                       <input type="hidden" name="evento_id" value={ev.id} />
@@ -161,35 +183,44 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                   )}
 
                   {pideGrupal && (
-                    <section className="grid gap-3">
-                      {pideIndividual && <h3 className="text-sm font-medium">Entrega del grupo</h3>}
+                    <Bloque
+                      icono={UsersRound}
+                      titulo="Entrega del grupo"
+                      detalle="La ven el grupo, su mentor y los profesores."
+                      versiones={delGrupo.length}
+                    >
                       <Versiones {...comun} versiones={delGrupo} vacio="Todavía no hay nada entregado por el grupo para este hito." />
                       {esAlumno && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={delGrupo.length > 0} />}
-                    </section>
+                    </Bloque>
                   )}
 
                   {pideIndividual && esAlumno && (
-                    <section className="grid gap-3">
-                      <div>
-                        <h3 className="text-sm font-medium">Tu entrega individual</h3>
-                        <p className="text-xs text-[#666]">La ven solo vos y los profesores.</p>
-                      </div>
+                    <Bloque
+                      icono={UserRound}
+                      titulo="Tu entrega individual"
+                      detalle="La ven solo vos y los profesores."
+                      versiones={individualDe(persona.id).length}
+                    >
                       <Versiones {...comun} versiones={individualDe(persona.id)} vacio="Todavía no subiste tu entrega individual." />
                       <SubirEntrega proyectoId={null} eventoId={ev.id} hayVersiones={individualDe(persona.id).length > 0} />
-                    </section>
+                    </Bloque>
                   )}
 
                   {pideIndividual && esProfesor && (
-                    <section className="grid gap-4">
-                      <h3 className="text-sm font-medium">Entregas individuales</h3>
+                    <>
                       {integrantes.data!.length === 0 && <p className="text-sm text-[#666]">El grupo todavía no tiene integrantes.</p>}
                       {integrantes.data!.map((i) => (
-                        <div key={i.persona_id} className="grid gap-2">
-                          <p className="text-sm">{i.personas.nombre}</p>
+                        <Bloque
+                          key={i.persona_id}
+                          icono={UserRound}
+                          titulo={`Individual · ${i.personas.nombre}`}
+                          detalle="La ven solo el alumno y los profesores."
+                          versiones={individualDe(i.persona_id).length}
+                        >
                           <Versiones {...comun} versiones={individualDe(i.persona_id)} vacio="Todavía no entregó." />
-                        </div>
+                        </Bloque>
                       ))}
-                    </section>
+                    </>
                   )}
 
                   {!pideGrupal && persona.rol === "mentor" && (
