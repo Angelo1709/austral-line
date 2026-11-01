@@ -241,6 +241,26 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"alumnos_hitos_tipo": {
+                  Row: {
+                    "evento_id": string,"tipo": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "evento_id": string,"tipo"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "evento_id"?: string,"tipo"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_hitos_tipo_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: true
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"alumnos_ideas": {
                   Row: {
                     "a_quien_le_pasa": string | null,"autor_id": string | null,"como_seria_resuelto": string | null,"created_at": string,"descripcion": string,"estado": string,"id": string,"interes_id": number | null,"que_se_intento": string | null,"titulo": string,"updated_at": string
@@ -1611,6 +1631,9 @@ isOneToOne: false
                            },
 "alumnos_soy_mentor":
 { Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"alumnos_tipo_hito":
+{ Args: { "p_evento": string }; Returns: string
                            },
 "alumnos_yo":
 { Args: Record<PropertyKey, never>; Returns: string
