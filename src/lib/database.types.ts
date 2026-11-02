@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-
+  
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -61,7 +61,7 @@ isOneToOne: true
                     "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-
+                    
                   ]
                 },"alumnos_entregas": {
                   Row: {
@@ -203,7 +203,7 @@ isOneToOne: true
                     "created_at"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string | null,"proyecto_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"alumnos_ideas": {
                   Row: {
@@ -359,7 +359,7 @@ isOneToOne: false
                     "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"alumnos_intereses_maestro": {
                   Row: {
@@ -373,7 +373,7 @@ isOneToOne: false
                     "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-
+                    
                   ]
                 },"alumnos_perfiles": {
                   Row: {
@@ -627,7 +627,7 @@ isOneToOne: false
                     "created_at"?: string,"fin"?: string | null,"id"?: string,"inicio"?: string,"lugar"?: string | null,"nombre"?: string,"tipo"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"jurado_ausencias": {
                   Row: {
@@ -673,7 +673,7 @@ isOneToOne: false
                     "created_at"?: string,"descripcion"?: string | null,"es_base"?: boolean,"id"?: string,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-
+                    
                   ]
                 },"jurado_devolucion_envios": {
                   Row: {
@@ -1265,7 +1265,7 @@ isOneToOne: false
                     "created_at"?: string,"email"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol"]
                   }
                   Relationships: [
-
+                    
                   ]
                 },"proyecto_integrantes": {
                   Row: {
@@ -1305,7 +1305,7 @@ isOneToOne: false
                     "created_at"?: string,"descripcion"?: string | null,"estado"?: string,"id"?: string,"nombre"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 }
           }
@@ -1485,7 +1485,7 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-
+            
           }
         },"public": {
           Enums: {
