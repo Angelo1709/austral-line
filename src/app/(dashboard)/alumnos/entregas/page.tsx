@@ -20,6 +20,11 @@ const SELECT_ENTREGA =
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: ZONA });
+const fechaHora = (iso: string) =>
+  new Date(iso).toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONA }) + " h";
+// Para el campo de fecha y hora del formulario: "2026-11-20T18:00" en hora de Argentina.
+const paraInput = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString("sv-SE", { timeZone: ZONA }).replace(" ", "T").slice(0, 16) : "";
 
 async function Aviso({ searchParams }: Pick<PageProps<"/alumnos/entregas">, "searchParams">) {
   const { error } = await searchParams;
@@ -90,7 +95,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
 
   const [eventos, tipos, grupales, integrantes] = await Promise.all([
     supabase.from("eventos").select("id, nombre, inicio").order("inicio"),
-    supabase.from("alumnos_hitos_tipo").select("evento_id, tipo"),
+    supabase.from("alumnos_hitos_tipo").select("evento_id, tipo, cierre"),
     supabase.from("alumnos_entregas").select(SELECT_ENTREGA).eq("proyecto_id", proyecto.id).order("version", { ascending: false }),
     supabase.from("proyecto_integrantes").select("persona_id, personas(nombre)").eq("proyecto_id", proyecto.id),
   ]);
@@ -105,6 +110,8 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
 
   const todas = [...grupales.data!, ...individuales.data] as (Version & { evento_id: string; persona_id: string | null })[];
   const tipoDe = new Map(tipos.data!.map((t) => [t.evento_id, t.tipo as Tipo]));
+  const cierreFijado = new Map(tipos.data!.map((t) => [t.evento_id, t.cierre]));
+  const ahora = new Date().getTime();
 
   // Links de descarga válidos por una hora.
   const paths = todas.map((e) => e.archivo_path);
@@ -152,7 +159,10 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
           const delGrupo = todas.filter((e) => e.evento_id === ev.id && !e.persona_id);
           const individualDe = (id: string) => todas.filter((e) => e.evento_id === ev.id && e.persona_id === id);
           const versionesVisibles = (pideGrupal ? delGrupo.length : 0) + (pideIndividual ? idsIndividuales.flatMap(individualDe).length : 0);
-          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id };
+          // Hasta el cierre (el que fijaron los profesores o, si no, la fecha y hora del hito) se puede corregir.
+          const cierre = cierreFijado.get(ev.id) ?? ev.inicio;
+          const abiertoACambios = ahora < new Date(cierre).getTime();
+          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id, corregible: esAlumno && abiertoACambios };
           return (
             <li key={ev.id}>
               <details open={ev.id === abierto} className="group border bg-card">
@@ -170,6 +180,11 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                 </summary>
 
                 <div className="grid gap-4 border-t px-6 py-5">
+                  <p className="text-sm text-[#666]">
+                    {abiertoACambios
+                      ? `Cierre de la entrega: ${fechaHora(cierre)}. Hasta entonces se puede borrar una versión o corregir su nota, si todavía no tiene devoluciones.`
+                      : `La entrega cerró el ${fechaHora(cierre)}: las versiones quedan fijas.`}
+                  </p>
                   {esProfesor && (
                     <form action={guardarTipoHito} className="flex flex-wrap items-center gap-2 text-sm">
                       <input type="hidden" name="evento_id" value={ev.id} />
@@ -178,6 +193,14 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       <select id={`tipo-${ev.id}`} name="tipo" defaultValue={tipo} className="h-8 border bg-background px-2 text-sm">
                         {(Object.keys(TIPOS) as Tipo[]).map((t) => <option key={t} value={t}>{TIPOS[t]}</option>)}
                       </select>
+                      <label htmlFor={`cierre-${ev.id}`} className="text-[#666]">Cierre:</label>
+                      <input
+                        id={`cierre-${ev.id}`}
+                        type="datetime-local"
+                        name="cierre"
+                        defaultValue={paraInput(cierreFijado.get(ev.id) ?? null)}
+                        className="h-8 border bg-background px-2 text-sm"
+                      />
                       <Button type="submit" size="sm" variant="outline">Guardar</Button>
                     </form>
                   )}

@@ -3,7 +3,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { publicarDevolucion } from "../_acciones";
+import { Pencil } from "lucide-react";
+import { corregirNota, publicarDevolucion } from "../_acciones";
+import { BorrarVersion } from "./borrar-version";
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: ZONA });
@@ -44,6 +46,8 @@ export function Versiones(props: {
   proyectoId: string; // para volver al mismo grupo después de publicar
   eventoId: string;
   vacio: string;
+  // El alumno puede borrar o corregir (antes del cierre) las versiones que todavía no tienen devoluciones.
+  corregible?: boolean;
 }) {
   const { versiones, linkDe, persona } = props;
   const puedeDevolver = persona.rol !== "alumno";
@@ -77,6 +81,33 @@ export function Versiones(props: {
               </span>
             </div>
             {v.nota && <p className="border-l-2 pl-3 text-sm">{v.nota}</p>}
+
+            {props.corregible && v.alumnos_entregas_devoluciones.length === 0 && (
+              <div className="grid gap-2 text-sm">
+                <div className="flex flex-wrap items-start gap-4">
+                  <details className="group/nota">
+                    <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-[#666] hover:text-primary [&::-webkit-details-marker]:hidden">
+                      <Pencil className="size-3.5" aria-hidden /> Corregir nota
+                    </summary>
+                    <form action={corregirNota} className="mt-2 grid w-full min-w-72 gap-2">
+                      <input type="hidden" name="entrega_id" value={v.id} />
+                      {ocultos}
+                      <textarea
+                        name="nota"
+                        defaultValue={v.nota ?? ""}
+                        maxLength={500}
+                        rows={2}
+                        placeholder="¿Qué cambió en esta versión?"
+                        aria-label="Nota de la versión"
+                        className={campo}
+                      />
+                      <div><Button type="submit" size="sm" variant="outline">Guardar nota</Button></div>
+                    </form>
+                  </details>
+                  <BorrarVersion entregaId={v.id} proyectoId={props.proyectoId} eventoId={props.eventoId} version={v.version} />
+                </div>
+              </div>
+            )}
 
             {raices.length > 0 && (
               <ul className="grid gap-4 border-t pt-3">
