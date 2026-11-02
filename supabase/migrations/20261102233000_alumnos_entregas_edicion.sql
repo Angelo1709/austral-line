@@ -1,12 +1,25 @@
--- GRUPO ALUMNOS: corregir una entrega hasta el cierre.
--- Los profesores fijan, en cada hito, la fecha y hora de cierre de la entrega (si no la fijan, cierra a la
--- fecha y hora del hito). Hasta el cierre, los alumnos pueden borrar una versión o corregir su nota:
+-- GRUPO ALUMNOS: apertura y cierre de cada entrega, y corregir una entrega hasta el cierre.
+-- Los profesores fijan, en cada hito, la fecha y hora de apertura y de cierre de la entrega (como en el campus).
+--   * Apertura: antes no se puede subir nada. Sin apertura, se puede subir desde ya.
+--   * Cierre: si no lo fijan, cierra a la fecha y hora del hito. Lo que se sube después queda como entregado con
+--     retraso (se sigue pudiendo subir).
+-- Hasta el cierre, los alumnos pueden borrar una versión o corregir su nota:
 --   * la del grupo, cualquier integrante; la individual, solo su dueño;
 --   * nunca si ya tiene una devolución de los profesores o del mentor (para no perder lo que comentaron).
 -- Después del cierre todas las versiones quedan fijas. Para cambiar el archivo se borra y se sube otro.
 
--- Cierre de la entrega de cada hito (va junto al tipo de entrega que ya eligen los profesores).
-alter table alumnos_hitos_tipo add column cierre timestamptz;
+-- Apertura y cierre de la entrega de cada hito (van junto al tipo de entrega que ya eligen los profesores).
+alter table alumnos_hitos_tipo
+  add column apertura timestamptz,
+  add column cierre timestamptz,
+  add constraint alumnos_hitos_apertura_antes_del_cierre check (apertura is null or cierre is null or apertura < cierre);
+
+-- Antes de la apertura los alumnos no suben (se suma, como restricción, a las reglas de subida que ya había).
+create policy "alumnos suben desde la apertura" on alumnos_entregas as restrictive for insert to authenticated
+  with check (
+    mi_rol() is distinct from 'alumno'
+    or now() >= coalesce((select h.apertura from alumnos_hitos_tipo h where h.evento_id = alumnos_entregas.evento_id), '-infinity')
+  );
 
 create function public.alumnos_cierre_hito(p_evento uuid) returns timestamptz
 language sql stable security invoker set search_path = public as $$

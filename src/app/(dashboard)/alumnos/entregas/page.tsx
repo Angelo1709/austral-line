@@ -20,8 +20,11 @@ const SELECT_ENTREGA =
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: ZONA });
-const fechaHora = (iso: string) =>
-  new Date(iso).toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONA }) + " h";
+// Como en el campus: "sábado, 7 de noviembre de 2026, 00:00".
+const fechaLarga = (iso: string) =>
+  new Date(iso).toLocaleString("es-AR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: ZONA,
+  });
 // Para el campo de fecha y hora del formulario: "2026-11-20T18:00" en hora de Argentina.
 const paraInput = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("sv-SE", { timeZone: ZONA }).replace(" ", "T").slice(0, 16) : "";
@@ -95,7 +98,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
 
   const [eventos, tipos, grupales, integrantes] = await Promise.all([
     supabase.from("eventos").select("id, nombre, inicio").order("inicio"),
-    supabase.from("alumnos_hitos_tipo").select("evento_id, tipo, cierre"),
+    supabase.from("alumnos_hitos_tipo").select("evento_id, tipo, apertura, cierre"),
     supabase.from("alumnos_entregas").select(SELECT_ENTREGA).eq("proyecto_id", proyecto.id).order("version", { ascending: false }),
     supabase.from("proyecto_integrantes").select("persona_id, personas(nombre)").eq("proyecto_id", proyecto.id),
   ]);
@@ -111,6 +114,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
   const todas = [...grupales.data!, ...individuales.data] as (Version & { evento_id: string; persona_id: string | null })[];
   const tipoDe = new Map(tipos.data!.map((t) => [t.evento_id, t.tipo as Tipo]));
   const cierreFijado = new Map(tipos.data!.map((t) => [t.evento_id, t.cierre]));
+  const aperturaDe = new Map(tipos.data!.map((t) => [t.evento_id, t.apertura]));
   const ahora = new Date().getTime();
 
   // Links de descarga válidos por una hora.
@@ -162,7 +166,9 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
           // Hasta el cierre (el que fijaron los profesores o, si no, la fecha y hora del hito) se puede corregir.
           const cierre = cierreFijado.get(ev.id) ?? ev.inicio;
           const abiertoACambios = ahora < new Date(cierre).getTime();
-          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id, corregible: esAlumno && abiertoACambios };
+          const apertura = aperturaDe.get(ev.id) ?? null;
+          const todaviaNoAbre = apertura !== null && ahora < new Date(apertura).getTime();
+          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id, cierre, corregible: esAlumno && abiertoACambios };
           return (
             <li key={ev.id}>
               <details open={ev.id === abierto} className="group border bg-card">
@@ -180,11 +186,19 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                 </summary>
 
                 <div className="grid gap-4 border-t px-6 py-5">
-                  <p className="text-sm text-[#666]">
-                    {abiertoACambios
-                      ? `Cierre de la entrega: ${fechaHora(cierre)}. Hasta entonces se puede borrar una versión o corregir su nota, si todavía no tiene devoluciones.`
-                      : `La entrega cerró el ${fechaHora(cierre)}: las versiones quedan fijas.`}
-                  </p>
+                  <div className="grid gap-1 border-b pb-4 text-sm">
+                    <p className="flex flex-wrap gap-x-4 gap-y-1">
+                      {apertura && <span><span className="font-medium">Apertura:</span> {fechaLarga(apertura)}</span>}
+                      <span><span className="font-medium">Cierre:</span> {fechaLarga(cierre)}</span>
+                    </p>
+                    <p className={cn("text-xs", abiertoACambios ? "text-[#666]" : "text-destructive")}>
+                      {todaviaNoAbre
+                        ? "Todavía no abrió: vas a poder subir la entrega desde la apertura."
+                        : abiertoACambios
+                          ? "Hasta el cierre se puede borrar una versión o corregir su nota, si todavía no tiene devoluciones."
+                          : "La entrega ya cerró: las versiones quedan fijas y lo que se suba ahora queda como entregado con retraso."}
+                    </p>
+                  </div>
                   {esProfesor && (
                     <form action={guardarTipoHito} className="flex flex-wrap items-center gap-2 text-sm">
                       <input type="hidden" name="evento_id" value={ev.id} />
@@ -193,6 +207,14 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       <select id={`tipo-${ev.id}`} name="tipo" defaultValue={tipo} className="h-8 border bg-background px-2 text-sm">
                         {(Object.keys(TIPOS) as Tipo[]).map((t) => <option key={t} value={t}>{TIPOS[t]}</option>)}
                       </select>
+                      <label htmlFor={`apertura-${ev.id}`} className="text-[#666]">Apertura:</label>
+                      <input
+                        id={`apertura-${ev.id}`}
+                        type="datetime-local"
+                        name="apertura"
+                        defaultValue={paraInput(apertura)}
+                        className="h-8 border bg-background px-2 text-sm"
+                      />
                       <label htmlFor={`cierre-${ev.id}`} className="text-[#666]">Cierre:</label>
                       <input
                         id={`cierre-${ev.id}`}
@@ -213,7 +235,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       versiones={delGrupo.length}
                     >
                       <Versiones {...comun} versiones={delGrupo} vacio="Todavía no hay nada entregado por el grupo para este hito." />
-                      {esAlumno && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={delGrupo.length > 0} />}
+                      {esAlumno && !todaviaNoAbre && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={delGrupo.length > 0} />}
                     </Bloque>
                   )}
 
@@ -225,7 +247,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       versiones={individualDe(persona.id).length}
                     >
                       <Versiones {...comun} versiones={individualDe(persona.id)} vacio="Todavía no subiste tu entrega individual." />
-                      <SubirEntrega proyectoId={null} eventoId={ev.id} hayVersiones={individualDe(persona.id).length > 0} />
+                      {!todaviaNoAbre && <SubirEntrega proyectoId={null} eventoId={ev.id} hayVersiones={individualDe(persona.id).length > 0} />}
                     </Bloque>
                   )}
 

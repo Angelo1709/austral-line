@@ -59,7 +59,7 @@ export async function registrarEntrega(datos: {
     subida_por: persona.id,
   });
   if (error?.code === "23505") return { error: "Se subió otra versión al mismo tiempo. Probá de nuevo." };
-  if (error?.code === "42501") return { error: "Este hito no pide este tipo de entrega." };
+  if (error?.code === "42501") return { error: "No se puede subir: este hito no pide este tipo de entrega o todavía no abrió." };
   if (error) return { error: `No se pudo registrar la entrega: ${error.message}` };
   revalidatePath("/alumnos/entregas");
   return { ok: true };
@@ -98,18 +98,24 @@ export async function guardarTipoHito(formData: FormData) {
   await requireRol(); // sin roles = solo admin (profesores)
   const eventoId = String(formData.get("evento_id"));
   const tipo = String(formData.get("tipo"));
-  // "2026-11-20T18:00" del formulario, en hora de Argentina. Vacío = cierra a la fecha y hora del hito.
+  // "2026-11-20T18:00" del formulario, en hora de Argentina. Apertura vacía = se sube desde ya;
+  // cierre vacío = cierra a la fecha y hora del hito.
+  const aperturaLocal = String(formData.get("apertura") ?? "");
   const cierreLocal = String(formData.get("cierre") ?? "");
+  const aIso = (local: string) => (local ? new Date(`${local}:00-03:00`).toISOString() : null);
   const volver = volverA(formData);
   if (!["grupal", "individual", "ambas"].includes(tipo)) redirect(`${volver}&error=${encodeURIComponent("Tipo de entrega inválido.")}`);
-  if (cierreLocal && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(cierreLocal)) {
-    redirect(`${volver}&error=${encodeURIComponent("La fecha de cierre no es válida.")}`);
+  const valida = (local: string) => !local || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local);
+  if (!valida(aperturaLocal) || !valida(cierreLocal)) redirect(`${volver}&error=${encodeURIComponent("Alguna fecha no es válida.")}`);
+  if (aperturaLocal && cierreLocal && aperturaLocal >= cierreLocal) {
+    redirect(`${volver}&error=${encodeURIComponent("La apertura tiene que ser antes del cierre.")}`);
   }
   const supabase = await createClient();
   const { error } = await supabase.from("alumnos_hitos_tipo").upsert({
     evento_id: eventoId,
     tipo,
-    cierre: cierreLocal ? new Date(`${cierreLocal}:00-03:00`).toISOString() : null,
+    apertura: aIso(aperturaLocal),
+    cierre: aIso(cierreLocal),
     updated_at: new Date().toISOString(),
   });
   if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo guardar: ${error.message}`)}`);

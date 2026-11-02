@@ -46,6 +46,8 @@ export function Versiones(props: {
   proyectoId: string; // para volver al mismo grupo después de publicar
   eventoId: string;
   vacio: string;
+  // Cierre de la entrega: lo que se subió después se marca como entregado con retraso.
+  cierre: string;
   // El alumno puede borrar o corregir (antes del cierre) las versiones que todavía no tienen devoluciones.
   corregible?: boolean;
 }) {
@@ -79,6 +81,9 @@ export function Versiones(props: {
               <span className="text-[#666]">
                 {tamano(v.tamano_bytes)} · {v.subidor?.nombre ?? "alguien"} · {fechaHora(v.created_at)}
               </span>
+              {new Date(v.created_at).getTime() > new Date(props.cierre).getTime() && (
+                <Badge variant="outline" className="border-destructive text-destructive">Entregada con retraso</Badge>
+              )}
             </div>
             {v.nota && <p className="border-l-2 pl-3 text-sm">{v.nota}</p>}
 

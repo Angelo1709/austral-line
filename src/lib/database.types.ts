@@ -243,14 +243,14 @@ isOneToOne: true
                   ]
                 },"alumnos_hitos_tipo": {
                   Row: {
-                    "cierre": string | null,"evento_id": string,"tipo": string,"updated_at": string
+                    "apertura": string | null,"cierre": string | null,"evento_id": string,"tipo": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cierre"?: string | null,"evento_id": string,"tipo"?: string,"updated_at"?: string
+                    "apertura"?: string | null,"cierre"?: string | null,"evento_id": string,"tipo"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "cierre"?: string | null,"evento_id"?: string,"tipo"?: string,"updated_at"?: string
+                    "apertura"?: string | null,"cierre"?: string | null,"evento_id"?: string,"tipo"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
