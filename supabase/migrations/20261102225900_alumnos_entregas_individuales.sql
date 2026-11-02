@@ -26,13 +26,13 @@ grant execute on function public.alumnos_tipo_hito(uuid) to authenticated;
 
 -- Entregas individuales: cada alumno ve y sube solo las suyas -----------------------------------
 create policy "alumno ve sus individuales" on alumnos_entregas for select to authenticated
-  using (mi_rol() = 'alumno' and persona_id = alumnos_yo());
+  using (mi_rol() = 'alumno' and persona_id = mi_persona_id());
 create policy "alumno sube su individual" on alumnos_entregas for insert to authenticated
   with check (
     mi_rol() = 'alumno'
     and proyecto_id is null
-    and persona_id = alumnos_yo()
-    and subida_por = alumnos_yo()
+    and persona_id = mi_persona_id()
+    and subida_por = mi_persona_id()
     and alumnos_tipo_hito(evento_id) in ('individual', 'ambas')
   );
 -- Y las del grupo, solo en los hitos grupales (se suma a los permisos que ya había).
@@ -42,13 +42,13 @@ create policy "grupales solo en hitos grupales" on alumnos_entregas as restricti
 -- Devoluciones de una entrega individual: el alumno las lee y las contesta ----------------------
 create policy "alumno lee las de sus individuales" on alumnos_entregas_devoluciones for select to authenticated
   using (mi_rol() = 'alumno' and exists (
-    select 1 from alumnos_entregas e where e.id = entrega_id and e.persona_id = alumnos_yo()));
+    select 1 from alumnos_entregas e where e.id = entrega_id and e.persona_id = mi_persona_id()));
 create policy "alumno contesta en sus individuales" on alumnos_entregas_devoluciones for insert to authenticated
   with check (
     mi_rol() = 'alumno'
     and respuesta_a is not null
-    and autor_id = alumnos_yo()
-    and exists (select 1 from alumnos_entregas e where e.id = entrega_id and e.persona_id = alumnos_yo())
+    and autor_id = mi_persona_id()
+    and exists (select 1 from alumnos_entregas e where e.id = entrega_id and e.persona_id = mi_persona_id())
   );
 
 -- Archivos individuales: carpeta individual/<persona_id>/... del mismo bucket ------------------
@@ -57,13 +57,13 @@ create policy "alumnos-entregas: individual propio lee" on storage.objects for s
     bucket_id = 'alumnos-entregas'
     and mi_rol() = 'alumno'
     and (storage.foldername(name))[1] = 'individual'
-    and (storage.foldername(name))[2] = alumnos_yo()::text
+    and (storage.foldername(name))[2] = mi_persona_id()::text
   );
 create policy "alumnos-entregas: individual propio sube" on storage.objects for insert to authenticated
   with check (
     bucket_id = 'alumnos-entregas'
     and mi_rol() = 'alumno'
     and (storage.foldername(name))[1] = 'individual'
-    and (storage.foldername(name))[2] = alumnos_yo()::text
+    and (storage.foldername(name))[2] = mi_persona_id()::text
   );
 
