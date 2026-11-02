@@ -24,7 +24,7 @@ $$;
 -- 2. Vista con el mail filtrado según la regla. Corre como su dueño (no como el usuario), por eso repite
 --    el filtro de la policy "leer con rol" de personas. Se puede embeber igual que personas:
 --    personas:personas_contacto(nombre, email)
-create view public.personas_contacto with (security_invoker = false) as
+create view public.personas_contacto with (security_invoker = false, security_barrier = true) as
   select p.id, p.nombre, p.rol,
     case
       when public.mi_rol() = 'admin' or public.es_servicio() or p.id = public.mi_persona_id() or p.rol in ('alumno', 'admin') then p.email
