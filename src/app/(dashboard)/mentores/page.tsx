@@ -46,7 +46,7 @@ export default async function Mentores() {
   if (persona.rol === "admin") return <PanelAdmin />;
 
   const [{ data: personas, error }, { data: miPerfil }] = await Promise.all([
-    supabase.from("personas").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
+    supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle(),
   ]);
   if (error) throw error;
@@ -94,7 +94,7 @@ async function PanelAdmin() {
   const supabase = await createClient();
 
   const [{ data: mentores, error: errorMentores }, { data: eventosSpam, error: errorEventos }] = await Promise.all([
-    supabase.from("personas").select("id, nombre, email, mentores_perfil(*)").eq("rol", "mentor").order("nombre"),
+    supabase.from("personas_contacto").select("id, nombre, email, mentores_perfil(*)").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfil_eventos").select("id, persona_id, detalle, created_at").eq("tipo", "marcado_spam").eq("revisado", false).order("created_at"),
   ]);
   if (errorMentores) throw errorMentores;

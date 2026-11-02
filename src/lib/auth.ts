@@ -9,11 +9,11 @@ export const getUsuario = cache(async () => {
   const { data } = await supabase.auth.getClaims();
   const email = data?.claims.email;
   if (!email) redirect("/login");
-  const { data: persona } = await supabase
-    .from("personas")
-    .select("id, nombre, rol")
-    .eq("email", email.toLowerCase())
-    .maybeSingle();
+  // El mail ya no se lee directo de personas (#29): mi_persona_id() lo resuelve en la base.
+  const { data: id } = await supabase.rpc("mi_persona_id");
+  const { data: persona } = id
+    ? await supabase.from("personas").select("id, nombre, rol").eq("id", id).maybeSingle()
+    : { data: null };
   return { email, persona };
 });
 

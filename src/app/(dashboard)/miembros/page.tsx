@@ -43,7 +43,7 @@ async function MensajeError({ searchParams }: Pick<PageProps<"/miembros">, "sear
 export default async function Miembros({ searchParams }: PageProps<"/miembros">) {
   await requireRol();
   const supabase = await createClient();
-  const { data: personas, error } = await supabase.from("personas").select("*").order("rol").order("nombre");
+  const { data: personas, error } = await supabase.from("personas_contacto").select("*").order("rol").order("nombre");
   if (error) throw error;
 
   return (

@@ -12,6 +12,7 @@ import { cancelarCorreo, enviarCorreo, modoPrueba } from "../_resend";
 import { ANTICIPACION, enEspera, LIMITE_RESEND, vigente, yaSalio } from "./estado";
 import { fechaCorta, fechaHora } from "./fechas";
 import { estadosProyecto, mailAviso, mailResumen, type DatosResumen, type Sintesis } from "./mail";
+import { conMail } from "@/lib/supabase/tipos";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 type Resumen = Pick<Database["public"]["Tables"]["mentores_resumenes"]["Row"], "id" | "estado" | "programado_para" | "resend_id" | "created_at">;
@@ -111,11 +112,11 @@ function avisoPorDatos(d: DatosResumen) {
 
 // "Avisar humano": el aviso le llega por mail en el momento a los coordinadores (admins), no solo queda en la app.
 async function avisarCoordinador(supabase: Supabase, datos: DatosResumen, aviso: string, url: string) {
-  const { data: coordinadores, error } = await supabase.from("personas").select("email").eq("rol", "admin");
+  const { data: coordinadores, error } = await supabase.from("personas_contacto").select("email").eq("rol", "admin");
   if (error) throw error;
   if (coordinadores.length === 0) return { ok: false, problema: "no hay coordinadores cargados en Miembros" };
   const { asunto, html } = mailAviso(datos, aviso, url);
-  for (const { email } of coordinadores) {
+  for (const { email } of coordinadores.filter(conMail)) {
     const r = await enviarCorreo({ para: email, asunto, html });
     if (!r.ok) return { ok: false, problema: r.error };
   }
@@ -133,7 +134,7 @@ export async function prepararResumen(
   const [reunion, resumenes] = await Promise.all([
     supabase
       .from("mentores_reuniones")
-      .select("id, inicio, lugar, cancelada, proyecto_id, mentor_id, proyectos(nombre, descripcion, estado), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre, email)")
+      .select("id, inicio, lugar, cancelada, proyecto_id, mentor_id, proyectos(nombre, descripcion, estado), mentor:personas_contacto!mentores_reuniones_mentor_id_fkey(nombre, email)")
       .eq("id", reunionId)
       .single(),
     supabase.from("mentores_resumenes").select("id, estado, programado_para, resend_id, created_at, aviso_mail_at").eq("reunion_id", reunionId),
@@ -141,6 +142,8 @@ export async function prepararResumen(
   if (reunion.error) throw reunion.error;
   if (resumenes.error) throw resumenes.error;
   const r = reunion.data;
+  const mailMentor = r.mentor.email;
+  if (!mailMentor) return { ok: false, mensaje: "No tenés permiso para ver el mail de este mentor." };
   const actual = vigente(resumenes.data);
 
   const salio = !!actual && yaSalio(actual, ahora);
@@ -172,7 +175,7 @@ export async function prepararResumen(
 
   const datos: DatosResumen = {
     reunion: { id: r.id, inicio: r.inicio, lugar: r.lugar },
-    mentor: r.mentor,
+    mentor: { nombre: r.mentor.nombre, email: mailMentor },
     proyecto: r.proyectos,
     integrantes: integrantes.data!.map((i) => i.personas.nombre),
     anteriores: anteriores.data!,

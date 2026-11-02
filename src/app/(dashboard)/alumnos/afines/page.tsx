@@ -20,7 +20,7 @@ export default async function CompanerosAfines() {
   const supabase = await createClient();
 
   const [perfiles, maestro, respuestas, integrantes, carreras] = await Promise.all([
-    supabase.from("alumnos_perfiles").select("persona_id, sobre_mi, busca_equipo, personas(nombre, email)"),
+    supabase.from("alumnos_perfiles").select("persona_id, sobre_mi, busca_equipo, personas:personas_contacto(nombre, email)"),
     supabase.from("alumnos_intereses_maestro").select("id, nombre"),
     supabase.from("alumnos_intereses").select("persona_id, interes_id, estrellas"),
     supabase.from("proyecto_integrantes").select("persona_id, proyectos(nombre)"),

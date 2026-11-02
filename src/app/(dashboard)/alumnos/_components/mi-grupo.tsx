@@ -27,7 +27,7 @@ export async function MiGrupo({ personaId, guardadoEn }: { personaId: string; gu
     supabase.from("proyecto_integrantes").select("proyecto_id, persona_id, proyectos(nombre), personas(nombre)"),
     // RLS: la mía, la de mis compañeros de proyecto y la de quienes buscan equipo.
     supabase.from("alumnos_carreras").select("persona_id, alumnos_carreras_maestro(nombre)"),
-    supabase.from("alumnos_perfiles").select("persona_id, busca_equipo, personas(nombre, email)"),
+    supabase.from("alumnos_perfiles").select("persona_id, busca_equipo, personas:personas_contacto(nombre, email)"),
     supabase.from("alumnos_intereses").select("persona_id, interes_id, estrellas"),
     supabase.from("alumnos_intereses_maestro").select("id, nombre"),
   ]);

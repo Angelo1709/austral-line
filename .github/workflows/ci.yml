@@ -37,6 +37,11 @@ jobs:
           ultima=$(git ls-tree --name-only origin/${{ github.base_ref }} supabase/migrations/ | xargs -n1 basename | sort | tail -1 | cut -d_ -f1)
           viejas=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref }} -- supabase/migrations | xargs -rn1 basename | awk -F_ -v u="$ultima" '$1 <= u')
           [ -z "$viejas" ] || (echo "::error::Estas migraciones tienen fecha anterior a la última de main ($ultima). Renombralas con una fecha nueva (npm run db:nueva): $viejas" && exit 1)
+      - name: Las migraciones nuevas no buscan personas por mail
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(git diff --name-only --diff-filter=AM origin/${{ github.base_ref }} -- supabase/migrations | grep -v '_core_' || true)
+          [ -z "$files" ] || ! grep -nE "personas.*email|->>\s*'email'" $files || (echo "::error::La columna personas.email no se puede leer. Para 'quién soy' usá mi_persona_id(); para mostrar mails, la vista personas_contacto." && exit 1)
       - run: npm run lint
       - run: npm run build
         env:
