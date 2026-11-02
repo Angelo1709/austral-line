@@ -485,6 +485,12 @@ isOneToOne: true
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_contactos_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"austral_documentos": {
@@ -696,10 +702,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_solicitudes_contacto_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -722,6 +740,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_vinculos_mentor_proyecto_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -732,6 +756,12 @@ isOneToOne: false
       columns: ["registrado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
