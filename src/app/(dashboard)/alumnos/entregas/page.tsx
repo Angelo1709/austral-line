@@ -34,9 +34,18 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
     if (error) throw error;
     proyectos = data.map((d) => d.proyectos);
   } else if (persona.rol === "mentor") {
-    const { data, error } = await supabase.from("mentores_reuniones").select("proyectos(id, nombre)").eq("mentor_id", persona.id);
+    // Solo los grupos que el coordinador le asignó (match aceptado en Mentores): es lo mismo que decide la
+    // base para dejarle ver las entregas. Tener una reunión con un grupo no alcanza.
+    const { data, error } = await supabase.from("proyectos").select("id, nombre");
     if (error) throw error;
-    proyectos = data.map((d) => d.proyectos);
+    const asignado = await Promise.all(
+      data.map(async (p) => {
+        const r = await supabase.rpc("alumnos_soy_mentor", { p_proyecto: p.id });
+        if (r.error) throw r.error;
+        return r.data;
+      }),
+    );
+    proyectos = data.filter((_, i) => asignado[i]);
   } else {
     const { data, error } = await supabase.from("proyectos").select("id, nombre").order("nombre");
     if (error) throw error;
@@ -51,7 +60,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
         {titulo}
         <p className="text-sm text-[#666]">
           {persona.rol === "mentor"
-            ? "Todavía no tenés reuniones con ningún grupo. Cuando tengas, vas a ver acá sus entregas."
+            ? "Todavía no te asignaron ningún grupo. Cuando el coordinador te asigne uno, vas a ver acá sus entregas."
             : "Todavía no estás en un grupo. Cuando los profesores te sumen a un proyecto, vas a poder subir las entregas acá."}
         </p>
       </div>
