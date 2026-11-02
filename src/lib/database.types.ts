@@ -395,6 +395,26 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_contactos_mentores": {
+                  Row: {
+                    "acepta_consultas_otros": boolean,"actualizado_at": string,"email_contacto": string,"especialidades": (string)[],"industria": string,"mentor_id": string,"modalidad": string,"publicado": boolean,"telefono_contacto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acepta_consultas_otros"?: boolean,"actualizado_at"?: string,"email_contacto"?: string,"especialidades"?: (string)[],"industria"?: string,"mentor_id": string,"modalidad"?: string,"publicado"?: boolean,"telefono_contacto"?: string
+                  }
+                  Update: {
+                    "acepta_consultas_otros"?: boolean,"actualizado_at"?: string,"email_contacto"?: string,"especialidades"?: (string)[],"industria"?: string,"mentor_id"?: string,"modalidad"?: string,"publicado"?: boolean,"telefono_contacto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_contactos_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_documentos": {
                   Row: {
                     "bytes": number,"created_at": string,"id": string,"nombre": string,"proyecto_id": string,"ruta": string,"subido_por": string | null,"tipo": string
@@ -532,6 +552,64 @@ isOneToOne: false
     },{
       foreignKeyName: "austral_propuestas_incentivos_persona_id_fkey"
       columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_solicitudes_contacto": {
+                  Row: {
+                    "alumno_id": string,"created_at": string,"estado": string,"id": string,"mentor_id": string,"motivo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alumno_id": string,"created_at"?: string,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string
+                  }
+                  Update: {
+                    "alumno_id"?: string,"created_at"?: string,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_solicitudes_contacto_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_vinculos_mentor_proyecto": {
+                  Row: {
+                    "mentor_id": string,"proyecto_id": string,"registrado_at": string,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "mentor_id": string,"proyecto_id": string,"registrado_at"?: string,"registrado_por": string
+                  }
+                  Update: {
+                    "mentor_id"?: string,"proyecto_id"?: string,"registrado_at"?: string,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_vinculos_mentor_proyecto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_registrado_por_fkey"
+      columns: ["registrado_por"]
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
