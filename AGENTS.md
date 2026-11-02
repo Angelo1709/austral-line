@@ -64,7 +64,7 @@ Reglas:
 
 - Leer y escribir datos: Server Components y Server Actions con `createClient()` de `@/lib/supabase/server`. Tipado con `database.types.ts`; si un tipo no existe, faltó correr `npm run db:types`.
 - `cacheComponents` está activo: lo que lee cookies o la base va dentro de un `<Suspense>` (el layout del dashboard ya envuelve las páginas).
-- Nunca uses `createAdminClient()` (salta todos los permisos) fuera de la sección Miembros.
+- Nunca uses `createAdminClient()` (salta todos los permisos) fuera de la sección Miembros (la única otra excepción es `src/app/api/cron/`, del core).
 - IA: AI SDK con el gateway, pasando el modelo como string (`import { generateText } from "ai"; generateText({ model: "anthropic/claude-sonnet-5.5", prompt })`). Usa `AI_GATEWAY_API_KEY`. Los modelos disponibles están en https://vercel.com/ai-gateway/models
 
 ## Diseño: estilo Midday

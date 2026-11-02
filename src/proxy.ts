@@ -20,7 +20,9 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data } = await supabase.auth.getClaims();
-  if (!data?.claims && !request.nextUrl.pathname.startsWith("/login")) {
+  // /api/cron: lo llama Vercel sin sesión; cada ruta valida CRON_SECRET.
+  const publica = ["/login", "/api/cron/"].some((p) => request.nextUrl.pathname.startsWith(p));
+  if (!data?.claims && !publica) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   return response;
