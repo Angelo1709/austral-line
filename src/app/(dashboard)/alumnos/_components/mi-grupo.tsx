@@ -5,11 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { calcularAfinidad } from "../_lib/afinidad";
+import { CircleAlert, CircleCheck, CircleHelp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { evaluarGrupo, MINIMO_CARRERAS } from "../_lib/interdisciplina";
+import { InteresesGrupo } from "./intereses-grupo";
 
 const SUGERENCIAS = 3;
 
-export async function MiGrupo({ personaId }: { personaId: string }) {
+// Cómo se ve cada estado de la interdisciplinariedad: lleno si cumple, en rojo si no, punteado si falta información.
+const ESTILO = {
+  Interdisciplinario: { icono: CircleCheck, titulo: "Cumple la interdisciplinariedad", clase: "border-primary bg-primary text-primary-foreground" },
+  "Una sola carrera": { icono: CircleAlert, titulo: "No cumple la interdisciplinariedad", clase: "border-destructive bg-background text-destructive" },
+  "Faltan perfiles": { icono: CircleHelp, titulo: "Todavía no se puede saber", clase: "border-dashed border-primary bg-background" },
+} as const;
+
+// guardadoEn: proyecto cuyos intereses de grupo se acaban de guardar (para mostrar "Guardado").
+export async function MiGrupo({ personaId, guardadoEn }: { personaId: string; guardadoEn?: string }) {
   const supabase = await createClient();
 
   const [integrantes, carreras, perfiles, respuestas, maestro] = await Promise.all([
@@ -73,10 +84,28 @@ export async function MiGrupo({ personaId }: { personaId: string }) {
 
         return (
           <article key={proyectoId} className="grid gap-4 border bg-card p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="font-serif text-xl">{miembros[0].proyectos.nombre}</p>
-              <Badge variant={estado === "Interdisciplinario" ? "default" : "outline"}>{estado}</Badge>
-            </div>
+            <p className="font-serif text-xl">{miembros[0].proyectos.nombre}</p>
+
+            {(() => {
+              const { icono: Icono, titulo, clase } = ESTILO[estado];
+              const detalle =
+                estado === "Interdisciplinario"
+                  ? `Tiene integrantes de ${distintas.length} carreras: ${distintas.join(", ")}.`
+                  : estado === "Una sola carrera"
+                    ? `Todos son de ${distintas[0]}. Necesitan al menos ${MINIMO_CARRERAS} carreras distintas.`
+                    : sinCarrera.length === 1 && sinCarrera[0].persona_id === personaId
+                      ? "Te falta elegir tu carrera en Mi perfil."
+                      : "Falta que algunos integrantes elijan su carrera en Mi perfil.";
+              return (
+                <div role="status" className={cn("flex items-center gap-4 border-2 px-5 py-4", clase)}>
+                  <Icono className="size-8 shrink-0" aria-hidden />
+                  <div className="grid gap-0.5">
+                    <p className="font-serif text-lg leading-tight">{titulo}</p>
+                    <p className={cn("text-sm", estado === "Interdisciplinario" ? "opacity-80" : "text-[#666]")}>{detalle}</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             <ul className="grid gap-1 text-sm">
               {miembros.map((m) => (
@@ -88,32 +117,24 @@ export async function MiGrupo({ personaId }: { personaId: string }) {
               ))}
             </ul>
 
-            {estado === "Interdisciplinario" && (
-              <p className="text-sm text-[#666]">
-                Cumple: tiene integrantes de {distintas.length} carreras ({distintas.join(", ")}).
-              </p>
-            )}
-
             {estado === "Faltan perfiles" && (
               <p className="text-sm">
-                Todavía no se puede saber si es interdisciplinario: falta la carrera de{" "}
-                {sinCarrera.map((m) => (m.persona_id === personaId ? "vos" : m.personas.nombre)).join(", ")}. Cada uno la
-                elige en Mi perfil.
-                {sinCarrera.some((m) => m.persona_id === personaId) && (
+                {sinCarrera.some((m) => m.persona_id !== personaId) && (
                   <>
-                    {" "}
-                    <Link href="/alumnos/perfil" className="underline underline-offset-4">Completar mi perfil</Link>
+                    {sinCarrera.filter((m) => m.persona_id !== personaId).length === 1 ? "Le falta elegirla a " : "Les falta elegirla a "}
+                    {sinCarrera.filter((m) => m.persona_id !== personaId).map((m) => m.personas.nombre).join(", ")}
+                    {sinCarrera.some((m) => m.persona_id === personaId) ? " y a vos. " : ". "}
                   </>
+                )}
+                {sinCarrera.some((m) => m.persona_id === personaId) && (
+                  <Link href="/alumnos/perfil" className="underline underline-offset-4">Elegir mi carrera</Link>
                 )}
               </p>
             )}
 
             {estado === "Una sola carrera" && (
               <div className="grid gap-3">
-                <p className="text-sm">
-                  No cumple todavía: todos son de {distintas[0]}. Para ser interdisciplinario, sumen al menos a alguien de
-                  otra carrera.
-                </p>
+                <p className="text-sm">Para cumplir, sumen al menos a alguien de otra carrera.</p>
                 {sugeridos.length === 0 ? (
                   <p className="text-sm text-[#666]">
                     Por ahora no hay alumnos de otras carreras buscando equipo. Volvé a mirar en unos días o consultá con
@@ -138,6 +159,12 @@ export async function MiGrupo({ personaId }: { personaId: string }) {
                 )}
               </div>
             )}
+
+            <InteresesGrupo
+              proyectoId={proyectoId}
+              miembros={miembros.map((m) => ({ id: m.persona_id, nombre: m.personas.nombre }))}
+              guardado={guardadoEn === proyectoId}
+            />
           </article>
         );
       })}

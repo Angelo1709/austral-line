@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Label } from "@/components/ui/label";
 import { Estrellas } from "../_components/estrellas";
 import { BotonGuardar } from "../_components/boton-guardar";
+import { AutoGuardado } from "../_components/auto-guardado";
 
 const MINIMO_CALIFICADOS = 4;
 
@@ -119,14 +120,20 @@ export default async function MiPerfil({ searchParams }: PageProps<"/alumnos/per
               Calificá al menos {MINIMO_CALIFICADOS} temas; los que dejes sin calificar no cuentan. Podés cambiarlos cuando quieras.
             </p>
           </div>
-          <div className="grid gap-2">
-            {maestro.map(({ id, nombre }) => (
-              <div key={id} className="flex items-center justify-between gap-6 border bg-background px-4 py-3">
-                <span className="min-w-0 text-sm">{nombre}</span>
-                <Estrellas nombre={`interes_${id}`} valor={estrellasDe.get(id) ?? 0} tema={nombre} />
+          {(() => {
+            const filas = (
+              <div className="grid gap-2">
+                {maestro.map(({ id, nombre }) => (
+                  <div key={id} className="flex items-center justify-between gap-6 border bg-background px-4 py-3">
+                    <span className="min-w-0 text-sm">{nombre}</span>
+                    <Estrellas nombre={`interes_${id}`} valor={estrellasDe.get(id) ?? 0} tema={nombre} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+            // Cada estrella se guarda sola al tocarla, también antes de armar el perfil (así no se pierde nada).
+            return <AutoGuardado temas={maestro} perfilCreado={!!perfil}>{filas}</AutoGuardado>;
+          })()}
         </section>
 
         <section className="grid gap-4 border bg-card p-6">

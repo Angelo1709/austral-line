@@ -105,6 +105,45 @@ select s.evento_id, s.id, pe.id from jurado_salones s
 join (values ('Salón A', 'julio@empresa.com'), ('Salón B', 'lucia@fondo.com')) as a(salon, email) on a.salon = s.nombre
 join personas pe on pe.email = a.email;
 
+-- GRUPO MENTORES: más mentores en distintos estados (publicado prolijo, publicado con
+-- correcciones, borrador abandonado, sin empezar), para que el panel de métricas del admin
+-- tenga sentido con más de un caso (con solo Marta todo daba 100%/0.0hs/vacío).
+insert into personas (nombre, email, rol) values
+  ('Pablo Product', 'pablo@empresa.com', 'mentor'),
+  ('Rocío Finanzas', 'rocio@empresa.com', 'mentor'),
+  ('Diego Ventas', 'diego@empresa.com', 'mentor'),
+  ('Sofía Marketing', 'sofia@empresa.com', 'mentor');
+select pg_temp.crear_login(email) from personas
+  where email in ('pablo@empresa.com', 'rocio@empresa.com', 'diego@empresa.com', 'sofia@empresa.com');
+
+insert into mentores_perfil (persona_id, empresa, cargo, industria, anios_experiencia, bio, areas_ayuda, linkedin_url, estado, iniciado_at, publicado_at, ediciones_post_publicacion)
+select id, 'Mercado Libre', 'Product Manager', 'E-commerce', 6,
+  'Lidero equipos de producto en marketplaces desde hace 6 años.',
+  'Priorización de producto y research con usuarios.',
+  'https://linkedin.com/in/pabloproduct',
+  'publicado', now() - interval '3 days', now() - interval '3 days' + interval '40 minutes', 0
+from personas where email = 'pablo@empresa.com';
+
+insert into mentores_perfil (persona_id, empresa, cargo, industria, anios_experiencia, bio, areas_ayuda, linkedin_url, estado, iniciado_at, publicado_at, ediciones_post_publicacion)
+select id, 'BBVA', 'CFO', 'Finanzas', 10,
+  'Ayudo a startups a armar su modelo financiero y a prepararse para levantar capital.',
+  'Modelo financiero y ronda de inversión.',
+  'https://linkedin.com/in/rociofinanzas',
+  'publicado', now() - interval '5 days', now() - interval '5 days' + interval '3 hours', 2
+from personas where email = 'rocio@empresa.com';
+
+insert into mentores_perfil (persona_id, texto_original, estado, iniciado_at, updated_at)
+select id, 'trabajo en ventas b2b hace años, puedo ayudar con pricing', 'borrador', now() - interval '12 days', now() - interval '12 days'
+from personas where email = 'diego@empresa.com';
+-- Sofía Marketing queda sin fila en mentores_perfil: es el caso "todavía no empezó".
+
+insert into mentores_perfil_eventos (persona_id, tipo, detalle)
+select p.id, 'correccion_ia', jsonb_build_object('campo', 'linkedin_url', 'razon', 'le faltaba https://, se completó solo')
+from personas p where p.email in ('pablo@empresa.com', 'rocio@empresa.com');
+insert into mentores_perfil_eventos (persona_id, tipo, detalle)
+select p.id, 'correccion_ia', jsonb_build_object('campo', 'industria', 'razon', 'no estaba sustentado en lo que escribió; se descartó')
+from personas p where p.email = 'rocio@empresa.com';
+
 -- GRUPO MENTORES: reuniones de Marta para probar el resumen pre-reunión. Una pasada con notas y dos próximas
 -- (la de Tutorly es la primera y no tiene lugar cargado, para ver cómo muestra lo que falta).
 insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar, notas, proximos_pasos)

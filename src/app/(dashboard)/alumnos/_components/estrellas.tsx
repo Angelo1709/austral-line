@@ -4,12 +4,22 @@
 // calificación queda invisible pero ocupa su lugar, así las estrellas no se mueven.
 import { Star } from "lucide-react";
 
-export function Estrellas({ nombre, valor, tema }: { nombre: string; valor: number; tema: string }) {
+export function Estrellas({
+  nombre,
+  valor,
+  tema,
+  pregunta = "Cuánto te interesa",
+}: {
+  nombre: string;
+  valor: number;
+  tema: string;
+  pregunta?: string;
+}) {
   return (
     <div className="flex shrink-0 items-center gap-3">
       <div
         role="radiogroup"
-        aria-label={`Cuánto te interesa ${tema}`}
+        aria-label={`${pregunta} ${tema}`}
         className="flex flex-row-reverse justify-end [&>input:checked~label]:text-primary [&>input:focus-visible+label]:outline [&>label:hover]:text-primary [&>label:hover~label]:text-primary"
       >
         {[5, 4, 3, 2, 1].map((n) => (
