@@ -31,6 +31,12 @@ jobs:
         run: |
           edited=$(git diff --name-only --diff-filter=DMR origin/${{ github.base_ref }} -- supabase/migrations)
           [ -z "$edited" ] || (echo "::error::No se editan migraciones ya mergeadas: $edited" && exit 1)
+      - name: Las migraciones nuevas tienen fecha posterior a las de main
+        if: github.event_name == 'pull_request'
+        run: |
+          ultima=$(git ls-tree --name-only origin/${{ github.base_ref }} supabase/migrations/ | xargs -n1 basename | sort | tail -1 | cut -d_ -f1)
+          viejas=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref }} -- supabase/migrations | xargs -rn1 basename | awk -F_ -v u="$ultima" '$1 <= u')
+          [ -z "$viejas" ] || (echo "::error::Estas migraciones tienen fecha anterior a la última de main ($ultima). Renombralas con una fecha nueva (npm run db:nueva): $viejas" && exit 1)
       - run: npm run lint
       - run: npm run build
         env:
