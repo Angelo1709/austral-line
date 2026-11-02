@@ -95,7 +95,8 @@ export async function generarPropuesta(
           `Categoría: ${categoria}. Alternativa a evaluar: ${alternativa}.\n` +
           `Participaciones registradas:\n${resumen}\n` +
           `Usá solo esos hechos. No afirmes que el beneficio está disponible, aprobado o asignado. ` +
-          `No prometas pagos ni compromisos institucionales. Indicá que requiere revisión humana.`,
+          `No prometas pagos ni compromisos institucionales. Indicá que requiere revisión humana. ` +
+          `Escribí texto plano en párrafos breves, sin Markdown ni asteriscos.`,
       });
       if (resultado.text.trim()) fundamento = resultado.text.trim();
     } catch {

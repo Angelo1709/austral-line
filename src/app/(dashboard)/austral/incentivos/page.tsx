@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cambiarEstado } from "./actions";
 import { Formularios } from "./_components/formularios";
+import { Fundamento } from "./_components/fundamento";
 
 const categoriaLabel: Record<string, string> = {
   comida: "Comida",
@@ -53,7 +54,7 @@ export default async function Incentivos() {
                 <TableRow key={p.id}>
                   <TableCell className="align-top font-medium">{nombres.get(p.persona_id) ?? "Persona no disponible"}</TableCell>
                   <TableCell className="min-w-44 align-top whitespace-normal"><span className="text-xs text-[#666]">{categoriaLabel[p.categoria]}</span><br />{p.alternativa}</TableCell>
-                  <TableCell className="max-w-xl min-w-64 align-top whitespace-normal text-[#666]">{p.fundamento}<p className="mt-2 text-xs">Basado en {p.participaciones_consideradas} {p.participaciones_consideradas === 1 ? "participación registrada" : "participaciones registradas"}.</p></TableCell>
+                  <TableCell className="max-w-xl min-w-64 align-top whitespace-normal text-[#666]"><Fundamento texto={p.fundamento} /><p className="mt-2 text-xs">Basado en {p.participaciones_consideradas} {p.participaciones_consideradas === 1 ? "participación registrada" : "participaciones registradas"}.</p></TableCell>
                   <TableCell className="align-top">{p.estado === "en_estudio" ? "En estudio" : "Descartada"}</TableCell>
                   <TableCell className="align-top">
                     <form action={cambiarEstado}>
