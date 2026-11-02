@@ -15,18 +15,24 @@ $$;
 revoke execute on function public.mi_persona_id() from public, anon;
 grant execute on function public.mi_persona_id() to authenticated;
 
+-- Las tareas sin sesión (src/app/api/cron/) usan la clave de servicio: ven todo, como el admin.
+create function public.es_servicio() returns boolean
+language sql stable set search_path = '' as $$
+  select coalesce(auth.jwt() ->> 'role', '') = 'service_role'
+$$;
+
 -- 2. Vista con el mail filtrado según la regla. Corre como su dueño (no como el usuario), por eso repite
 --    el filtro de la policy "leer con rol" de personas. Se puede embeber igual que personas:
 --    personas:personas_contacto(nombre, email)
 create view public.personas_contacto with (security_invoker = false) as
   select p.id, p.nombre, p.rol,
     case
-      when public.mi_rol() = 'admin' or p.id = public.mi_persona_id() or p.rol in ('alumno', 'admin') then p.email
+      when public.mi_rol() = 'admin' or public.es_servicio() or p.id = public.mi_persona_id() or p.rol in ('alumno', 'admin') then p.email
     end as email
   from public.personas p
-  where public.mi_rol() is not null;
+  where public.mi_rol() is not null or public.es_servicio();
 revoke all on public.personas_contacto from public, anon;
-grant select on public.personas_contacto to authenticated;
+grant select on public.personas_contacto to authenticated, service_role;
 
 -- 3. Las policies y funciones de los grupos que buscaban "mi persona" comparando el mail del login
 --    pasan a comparar el id con mi_persona_id(). Mismo resultado, sin leer la columna email.

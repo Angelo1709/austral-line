@@ -1594,6 +1594,9 @@ isOneToOne: false
 "austral_yo":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"es_servicio":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "jurado_criterios_aplicar":
 { Args: { "p_evento": string,"p_origen"?: string }; Returns: number
                            },
