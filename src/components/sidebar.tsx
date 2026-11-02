@@ -67,7 +67,7 @@ export function Sidebar({ rol, footer }: { rol?: Rol; footer: React.ReactNode })
 export function MobileNav({ rol }: { rol?: Rol }) {
   const isActive = useSeccionActiva();
   return (
-    <nav className="flex gap-4 overflow-x-auto md:hidden">
+    <nav className="flex min-w-0 flex-1 gap-4 overflow-x-auto md:hidden">
       {secciones.filter((s) => puedeVer(rol, s.roles)).map(({ href, label }) => (
         <Link key={href} href={href} className={cn("whitespace-nowrap text-sm text-[#666]", isActive(href) && "text-primary")}>
           {label}

@@ -12,9 +12,9 @@ async function logout() {
   redirect("/login");
 }
 
-async function Menu({ salir }: { salir: React.ReactNode }) {
+async function Menu() {
   const { persona } = await getUsuario();
-  return <Sidebar rol={persona?.rol} footer={salir} />;
+  return <Sidebar rol={persona?.rol} footer={null} />;
 }
 
 async function MenuMobile() {
@@ -32,17 +32,19 @@ async function UsuarioActual() {
 export default function DashboardLayout({ children }: LayoutProps<"/">) {
   const salir = (
     <form action={logout}>
-      <button className="text-sm text-[#666] hover:text-primary">Cerrar sesión</button>
+      <button className="whitespace-nowrap text-sm text-[#666] hover:text-primary">Cerrar sesión</button>
     </form>
   );
 
   return (
     <div className="relative">
-      <Suspense><Menu salir={salir} /></Suspense>
+      <Suspense><Menu /></Suspense>
       <div className="pb-4 md:ml-[70px]">
         <header className="flex h-[70px] items-center justify-between gap-4 border-b px-4 md:px-8">
           <Suspense><MenuMobile /></Suspense>
-          <span className="ml-auto truncate text-sm text-[#666]"><Suspense><UsuarioActual /></Suspense></span>
+          <span className="ml-auto hidden truncate text-sm text-[#666] sm:block"><Suspense><UsuarioActual /></Suspense></span>
+          {/* Siempre visible: en celulares y tablets compartidas hay que poder salir (#19). */}
+          <div className="shrink-0">{salir}</div>
         </header>
         <main className="px-4 py-6 md:px-8">
           <Suspense fallback={<p className="text-sm text-[#666]">Cargando…</p>}>{children}</Suspense>
