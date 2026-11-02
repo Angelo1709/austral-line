@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Database } from "@/lib/supabase/tipos";
 
 // Salta RLS y administra usuarios. Solo en el servidor y después de requireRol("admin"),
 // o en src/app/api/cron/ después de validar CRON_SECRET.

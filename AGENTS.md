@@ -55,9 +55,12 @@ Reglas:
   create policy "admin todo" on jurado_votos for all to authenticated
     using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
   create policy "jurado lo suyo" on jurado_votos for all to authenticated
-    using (mi_rol() = 'jurado' and jurado_id = (select id from personas where email = auth.jwt() ->> 'email'))
-    with check (mi_rol() = 'jurado' and jurado_id = (select id from personas where email = auth.jwt() ->> 'email'));
+    using (mi_rol() = 'jurado' and jurado_id = mi_persona_id())
+    with check (mi_rol() = 'jurado' and jurado_id = mi_persona_id());
   ```
+- "Quién soy" en SQL es `mi_persona_id()`. La columna `personas.email` no se puede leer: para mostrar o usar mails,
+  leé la vista `personas_contacto` (`personas:personas_contacto(nombre, email)`). Ahí `email` viene en `null` si
+  el usuario no lo puede ver: el admin ve todos; el resto, el suyo y los de alumnos y coordinadores.
 - Si hace falta data de prueba, agregala al final de `supabase/seed.sql` con un comentario del grupo.
 
 ## Código

@@ -5,16 +5,17 @@ import { esLinkWeb, estadosEvaluables } from "../_lib";
 import { criteriosDelEvento } from "../_criterios";
 import { modoPrueba } from "../_resend";
 import { diaSiguienteALas9, mailPostEvento } from "./plantillas";
+import { conMail } from "@/lib/supabase/tipos";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
 export async function cargarDatos(supabase: Cliente, eventoId: string) {
   const [evento, jurados, proyectos, criterios, material] = await Promise.all([
     supabase.from("eventos").select("id, nombre, inicio, lugar").eq("id", eventoId).maybeSingle(),
-    supabase.from("personas").select("id, nombre, email").eq("rol", "jurado").order("nombre"),
+    supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "jurado").order("nombre"),
     supabase
       .from("proyectos")
-      .select("id, nombre, descripcion, proyecto_integrantes(personas(nombre, email))")
+      .select("id, nombre, descripcion, proyecto_integrantes(personas:personas_contacto(nombre, email))")
       .in("estado", estadosEvaluables)
       .order("nombre"),
     criteriosDelEvento(supabase, eventoId),
@@ -26,12 +27,12 @@ export async function cargarDatos(supabase: Cliente, eventoId: string) {
 
   return {
     evento: evento.data,
-    jurados: jurados.data!,
+    jurados: jurados.data!.filter(conMail),
     proyectos: proyectos.data!.map((p) => ({
       id: p.id,
       nombre: p.nombre,
       descripcion: p.descripcion,
-      integrantes: p.proyecto_integrantes.map((i) => i.personas),
+      integrantes: p.proyecto_integrantes.map((i) => i.personas).filter(conMail),
     })),
     criterios: criterios.map((c) => c.nombre),
     material: material.data,

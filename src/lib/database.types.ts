@@ -47,6 +47,12 @@ isOneToOne: false
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_carreras_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"alumnos_carreras_maestro": {
@@ -88,6 +94,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "alumnos_entregas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "alumnos_entregas_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -98,6 +110,12 @@ isOneToOne: false
       columns: ["subida_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_subida_por_fkey"
+      columns: ["subida_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -118,6 +136,12 @@ isOneToOne: false
       columns: ["autor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_devoluciones_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "alumnos_entregas_devoluciones_entrega_id_fkey"
@@ -163,6 +187,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_grupo_intereses_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"alumnos_grupo_intereses_calculo": {
@@ -182,6 +212,12 @@ isOneToOne: false
       columns: ["calculado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_grupo_intereses_calculo_calculado_por_fkey"
+      columns: ["calculado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "alumnos_grupo_intereses_calculo_proyecto_id_fkey"
@@ -224,6 +260,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "alumnos_ideas_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "alumnos_ideas_interes_id_fkey"
       columns: ["interes_id"]
 isOneToOne: false
@@ -255,6 +297,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_interesados_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"alumnos_ideas_mensajes": {
@@ -274,6 +322,12 @@ isOneToOne: false
       columns: ["autor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_mensajes_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "alumnos_ideas_mensajes_idea_id_fkey"
@@ -319,6 +373,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_reportes_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"alumnos_intereses": {
@@ -344,6 +404,12 @@ isOneToOne: false
       columns: ["persona_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_intereses_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -393,6 +459,12 @@ isOneToOne: false
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_perfiles_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"austral_contactos_mentores": {
@@ -412,6 +484,12 @@ isOneToOne: true
       columns: ["mentor_id"]
 isOneToOne: true
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_contactos_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -439,6 +517,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_documentos_subido_por_fkey"
+      columns: ["subido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"austral_material_usos": {
@@ -458,6 +542,12 @@ isOneToOne: false
       columns: ["jurado_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_material_usos_jurado_id_fkey"
+      columns: ["jurado_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_material_usos_material_id_fkey"
@@ -486,10 +576,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_materiales_aprobado_por_fkey"
+      columns: ["aprobado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_materiales_generado_por_fkey"
       columns: ["generado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_materiales_generado_por_fkey"
+      columns: ["generado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_materiales_proyecto_id_fkey"
@@ -518,6 +620,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_participaciones_creado_por_fkey"
+      columns: ["creado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_participaciones_evento_id_fkey"
       columns: ["evento_id"]
 isOneToOne: false
@@ -528,6 +636,12 @@ isOneToOne: false
       columns: ["persona_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_participaciones_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -550,10 +664,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_propuestas_incentivos_creado_por_fkey"
+      columns: ["creado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_propuestas_incentivos_persona_id_fkey"
       columns: ["persona_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_propuestas_incentivos_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -576,10 +702,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_solicitudes_contacto_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -602,6 +740,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_vinculos_mentor_proyecto_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -612,6 +756,12 @@ isOneToOne: false
       columns: ["registrado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -652,6 +802,12 @@ isOneToOne: false
       columns: ["marcado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_ausencias_marcado_por_fkey"
+      columns: ["marcado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "jurado_ausencias_proyecto_id_fkey"
@@ -700,6 +856,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "jurado_devolucion_envios_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "jurado_devolucion_envios_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -737,6 +899,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devoluciones_revisada_por_fkey"
+      columns: ["revisada_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"jurado_devoluciones_historial": {
@@ -756,6 +924,12 @@ isOneToOne: false
       columns: ["cambiado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devoluciones_historial_cambiado_por_fkey"
+      columns: ["cambiado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "jurado_devoluciones_historial_evento_id_proyecto_id_fkey"
@@ -809,6 +983,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_envios_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"jurado_evaluaciones": {
@@ -834,6 +1014,12 @@ isOneToOne: false
       columns: ["jurado_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_evaluaciones_jurado_id_fkey"
+      columns: ["jurado_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "jurado_evaluaciones_proyecto_id_fkey"
@@ -933,6 +1119,12 @@ isOneToOne: true
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_publicaciones_publicada_por_fkey"
+      columns: ["publicada_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"jurado_puntajes": {
@@ -978,6 +1170,12 @@ isOneToOne: false
       columns: ["jurado_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_salon_jurados_jurado_id_fkey"
+      columns: ["jurado_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "jurado_salon_jurados_salon_id_evento_id_fkey"
@@ -1052,6 +1250,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "mentores_encuestas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_encuestas_reunion_id_fkey"
       columns: ["reunion_id"]
 isOneToOne: false
@@ -1098,10 +1302,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "mentores_match_pedidos_alerta_revisada_por_fkey"
+      columns: ["alerta_revisada_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_match_pedidos_pedido_por_fkey"
       columns: ["pedido_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_match_pedidos_pedido_por_fkey"
+      columns: ["pedido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "mentores_match_pedidos_proyecto_id_fkey"
@@ -1129,6 +1345,12 @@ isOneToOne: false
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_perfil_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"mentores_perfil_eventos": {
@@ -1148,6 +1370,12 @@ isOneToOne: true
       columns: ["persona_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_perfil_eventos_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -1190,10 +1418,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "mentores_reuniones_cargada_por_fkey"
+      columns: ["cargada_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_reuniones_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_reuniones_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "mentores_reuniones_proyecto_id_fkey"
@@ -1222,8 +1462,26 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "mentores_sugerencias_calificado_por_fkey"
+      columns: ["calificado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_sugerencias_decidido_por_fkey"
       columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_mentor_id_fkey"
+      columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
@@ -1231,7 +1489,7 @@ isOneToOne: false
       foreignKeyName: "mentores_sugerencias_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
-      referencedRelation: "personas"
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "mentores_sugerencias_pedido_id_fkey"
@@ -1250,6 +1508,12 @@ isOneToOne: false
       columns: ["quitado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_quitado_por_fkey"
+      columns: ["quitado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
                   ]
@@ -1286,6 +1550,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "proyecto_integrantes_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "proyecto_integrantes_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -1310,7 +1580,21 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "personas_contacto": {
+                  Row: {
+                    "email": string | null,"id": string | null,"nombre": string | null,"rol": Database["public"]['Enums']["rol"] | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "email"?: never,"id"?: string | null,"nombre"?: string | null,"rol"?: Database["public"]['Enums']["rol"] | null
+                         }
+                        Update: {
+                           "email"?: never,"id"?: string | null,"nombre"?: string | null,"rol"?: Database["public"]['Enums']["rol"] | null
+                         }
+                        Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "alumnos_calcular_intereses_grupo":
@@ -1340,6 +1624,9 @@ isOneToOne: false
 "austral_yo":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"es_servicio":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "jurado_criterios_aplicar":
 { Args: { "p_evento": string,"p_origen"?: string }; Returns: number
                            },
@@ -1363,6 +1650,9 @@ isOneToOne: false
                            },
 "jurado_publicar_evento":
 { Args: { "p_evento": string }; Returns: number
+                           },
+"mi_persona_id":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "mi_rol":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol"]

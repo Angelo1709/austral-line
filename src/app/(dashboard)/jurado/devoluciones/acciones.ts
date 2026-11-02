@@ -9,6 +9,7 @@ import { enviarCorreos, modoPrueba } from "../_resend";
 import { urlBase } from "../comunicaciones/datos";
 import { textosSinNombre } from "./datos";
 import { mailDevolucion } from "./plantilla";
+import { conMail } from "@/lib/supabase/tipos";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -129,7 +130,7 @@ export async function reintentarMails(formData: FormData) {
 async function avisarPorMail(supabase: Supabase, eventoId: string, solo: Set<string> | null) {
   const { data: devoluciones, error } = await supabase
     .from("jurado_devoluciones")
-    .select("proyecto_id, eventos(nombre), proyectos(nombre, proyecto_integrantes(personas(id, nombre, email)))")
+    .select("proyecto_id, eventos(nombre), proyectos(nombre, proyecto_integrantes(personas:personas_contacto(id, nombre, email)))")
     .eq("evento_id", eventoId);
   if (error) throw error;
 
@@ -137,6 +138,7 @@ async function avisarPorMail(supabase: Supabase, eventoId: string, solo: Set<str
   const destinos = devoluciones.flatMap((d) =>
     d.proyectos.proyecto_integrantes
       .map((i) => i.personas)
+      .filter(conMail)
       .filter((p) => !solo || solo.has(`${d.proyecto_id}:${p.email}`))
       .map((p) => ({ proyectoId: d.proyecto_id, persona: p, correo: mailDevolucion({ nombre: p.nombre, equipo: d.proyectos.nombre, evento: d.eventos.nombre, url }) })),
   );

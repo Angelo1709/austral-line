@@ -10,6 +10,7 @@ import { enviarCorreo, modoPrueba } from "../_resend";
 import { hayIA } from "../reuniones/agente";
 import { mailPedido, mailUrgente } from "./mail";
 import { DURACION, puntajes, RECORDATORIO, SIN_RESPUESTA, VENTANA } from "./reglas";
+import { conMail } from "@/lib/supabase/tipos";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -23,7 +24,7 @@ export async function pedirFeedback(supabase: Supabase, url: string) {
   const ahora = Date.now();
   const { data, error } = await supabase
     .from("mentores_reuniones")
-    .select("id, inicio, proyecto_id, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(id, nombre, email)")
+    .select("id, inicio, proyecto_id, proyectos(nombre), mentor:personas_contacto!mentores_reuniones_mentor_id_fkey(id, nombre, email)")
     .eq("cancelada", false)
     .is("feedback_pedido_at", null)
     .lte("inicio", new Date(ahora - DURACION).toISOString())
@@ -46,7 +47,7 @@ export async function pedirFeedback(supabase: Supabase, url: string) {
 
     const { data: integrantes, error: errorIntegrantes } = await supabase
       .from("proyecto_integrantes")
-      .select("personas(id, nombre, email, rol)")
+      .select("personas:personas_contacto(id, nombre, email, rol)")
       .eq("proyecto_id", r.proyecto_id);
     if (errorIntegrantes) throw errorIntegrantes;
     const alumnos = integrantes.map((i) => i.personas).filter((p) => p.rol === "alumno");
@@ -54,7 +55,7 @@ export async function pedirFeedback(supabase: Supabase, url: string) {
     const destinatarios = [
       { ...r.mentor, papel: "mentor" as const, con_quien: "el equipo" },
       ...alumnos.map((a) => ({ ...a, papel: "alumno" as const, con_quien: r.mentor.nombre })),
-    ];
+    ].filter(conMail);
     for (const d of destinatarios) {
       const encuesta = {
         id: crypto.randomUUID(),
@@ -85,7 +86,7 @@ export async function ponerAlDia(supabase: Supabase, url: string) {
   const ahora = Date.now();
   const { data: pendientes, error } = await supabase
     .from("mentores_encuestas")
-    .select("id, created_at, recordatorio_at, con_quien, proyecto_nombre, reunion_inicio, personas(nombre, email)")
+    .select("id, created_at, recordatorio_at, con_quien, proyecto_nombre, reunion_inicio, personas:personas_contacto(nombre, email)")
     .eq("estado", "pendiente")
     .lte("created_at", new Date(ahora - RECORDATORIO).toISOString())
     .limit(20);
@@ -109,7 +110,7 @@ export async function ponerAlDia(supabase: Supabase, url: string) {
         .is("recordatorio_at", null)
         .select("id");
       if (errorRecordatorio) throw errorRecordatorio;
-      if (!marcada.length) continue;
+      if (!marcada.length || !e.personas.email) continue;
       const envio = await enviarCorreo({ para: e.personas.email, ...mailPedido({ ...e, nombre: e.personas.nombre }, url, { recordatorio: true }) });
       if (!envio.ok) {
         const { error: errorMail } = await supabase.from("mentores_encuestas").update({ mail_error: envio.error }).eq("id", e.id);
@@ -285,7 +286,7 @@ export async function revisarRespuesta(supabase: Supabase, encuestaId: string, u
     return false;
   }
 
-  const { data: admins, error: errorAdmins } = await supabase.from("personas").select("email").eq("rol", "admin");
+  const { data: admins, error: errorAdmins } = await supabase.from("personas_contacto").select("email").eq("rol", "admin");
   if (errorAdmins) throw errorAdmins;
   const { asunto, html } = mailUrgente({
     ...e,
@@ -293,7 +294,7 @@ export async function revisarRespuesta(supabase: Supabase, encuestaId: string, u
     motivo: motivo ?? (e.urgente ? "Pidió que el coordinador se entere." : null),
     comentarios: [e.sirvio, e.mejorar].filter((c) => c !== null),
   }, url);
-  for (const a of admins) await enviarCorreo({ para: a.email, asunto, html });
+  for (const a of admins.filter(conMail)) await enviarCorreo({ para: a.email, asunto, html });
 
   const { error: errorEscalada } = await supabase
     .from("mentores_encuestas")

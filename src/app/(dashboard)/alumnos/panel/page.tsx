@@ -56,7 +56,7 @@ export default async function PanelDeProfesores({ searchParams }: PageProps<"/al
 
   const [alumnos, perfiles, carreras, maestroCarreras, intereses, temas, integrantes, ideas, interesados, mensajes, reportes] =
     await Promise.all([
-      supabase.from("personas").select("id, nombre, email").eq("rol", "alumno").order("nombre"),
+      supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "alumno").order("nombre"),
       supabase.from("alumnos_perfiles").select("persona_id, busca_equipo"),
       supabase.from("alumnos_carreras").select("persona_id, carrera_id"),
       supabase.from("alumnos_carreras_maestro").select("id, nombre").order("orden"),

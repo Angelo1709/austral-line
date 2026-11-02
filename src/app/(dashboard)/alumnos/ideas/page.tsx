@@ -29,7 +29,7 @@ export default async function BancoDeIdeas({ searchParams }: PageProps<"/alumnos
       .from("alumnos_ideas")
       .select("id, titulo, descripcion, estado, created_at, autor_id, interes_id, autor:personas!alumnos_ideas_autor_id_fkey(nombre, rol), alumnos_intereses_maestro(nombre)")
       .order("created_at", { ascending: false }),
-    supabase.from("alumnos_ideas_interesados").select("idea_id, persona_id, personas(nombre, email)"),
+    supabase.from("alumnos_ideas_interesados").select("idea_id, persona_id, personas:personas_contacto(nombre, email)"),
     supabase.from("alumnos_intereses_maestro").select("id, nombre").eq("activo", true).order("orden").order("nombre"),
     supabase.from("alumnos_intereses").select("interes_id, estrellas").eq("persona_id", persona.id),
     supabase.from("alumnos_carreras").select("persona_id, alumnos_carreras_maestro(nombre)"),
@@ -38,7 +38,7 @@ export default async function BancoDeIdeas({ searchParams }: PageProps<"/alumnos
 
   const estrellasDe = new Map(misEstrellas.data!.map((e) => [e.interes_id, e.estrellas]));
   const carreraDe = new Map(carreras.data!.map((c) => [c.persona_id, c.alumnos_carreras_maestro.nombre]));
-  const interesadosDe = new Map<string, { persona_id: string; nombre: string; email: string }[]>();
+  const interesadosDe = new Map<string, { persona_id: string; nombre: string; email: string | null }[]>();
   for (const i of interesados.data!) {
     interesadosDe.set(i.idea_id, [...(interesadosDe.get(i.idea_id) ?? []), { persona_id: i.persona_id, ...i.personas }]);
   }
@@ -80,8 +80,7 @@ export default async function BancoDeIdeas({ searchParams }: PageProps<"/alumnos
                 <li key={i.persona_id}>
                   {i.nombre}
                   {carreraDe.has(i.persona_id) && <span className="text-[#666]"> · {carreraDe.get(i.persona_id)}</span>}
-                  {" · "}
-                  <a href={`mailto:${i.email}`} className="underline underline-offset-4 hover:text-[#666]">{i.email}</a>
+                  {i.email && <>{" · "}<a href={`mailto:${i.email}`} className="underline underline-offset-4 hover:text-[#666]">{i.email}</a></>}
                 </li>
               ))}
             </ul>

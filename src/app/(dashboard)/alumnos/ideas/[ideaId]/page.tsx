@@ -64,7 +64,7 @@ export default async function PaginaDeIdea({ params, searchParams }: PageProps<"
   if (!idea) notFound();
 
   const [interesados, mensajes, parecidas, carreras, temas, misReportes] = await Promise.all([
-    supabase.from("alumnos_ideas_interesados").select("persona_id, personas(nombre, email)").eq("idea_id", idea.id),
+    supabase.from("alumnos_ideas_interesados").select("persona_id, personas:personas_contacto(nombre, email)").eq("idea_id", idea.id),
     supabase
       .from("alumnos_ideas_mensajes")
       .select("id, texto, created_at, respuesta_a, autor_id, autor:personas!alumnos_ideas_mensajes_autor_id_fkey(nombre, rol)")
