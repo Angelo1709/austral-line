@@ -45,7 +45,7 @@ language sql stable security definer set search_path = public as $$
   )
 $$;
 
--- Borrar la versión (la fila). El archivo se borra antes, con la regla de storage de abajo.
+-- Borrar la versión (la fila). El archivo se borra después, con la regla de storage de abajo.
 create policy "alumno borra hasta el cierre" on alumnos_entregas for delete to authenticated
   using (alumnos_entrega_editable(id));
 
@@ -60,12 +60,18 @@ begin
 end;
 $$;
 
--- El archivo de una versión que todavía se puede borrar.
-create policy "alumnos-entregas: alumno borra hasta el cierre" on storage.objects for delete to authenticated
+-- Archivos sin versión registrada (la que se acaba de borrar, o una subida que no llegó a registrarse), en la
+-- carpeta del grupo o en la individual propia. Primero se borra la fila (que es la que decide si se puede) y
+-- después el archivo: así nunca queda una versión en la lista con el archivo perdido.
+create policy "alumnos-entregas: alumno borra archivos sin versión" on storage.objects for delete to authenticated
   using (
     bucket_id = 'alumnos-entregas'
     and mi_rol() = 'alumno'
-    and exists (select 1 from public.alumnos_entregas e where e.archivo_path = objects.name and public.alumnos_entrega_editable(e.id))
+    and (
+      alumnos_soy_integrante((storage.foldername(name))[1])
+      or ((storage.foldername(name))[1] = 'individual' and (storage.foldername(name))[2] = mi_persona_id()::text)
+    )
+    and not exists (select 1 from public.alumnos_entregas e where e.archivo_path = objects.name)
   );
 
 revoke execute on function public.alumnos_cierre_hito(uuid), public.alumnos_entrega_editable(uuid),

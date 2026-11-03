@@ -69,7 +69,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
   } else if (persona.rol === "mentor") {
     // Solo los grupos que el coordinador le asignó (match aceptado en Mentores): es lo mismo que decide la
     // base para dejarle ver las entregas. Tener una reunión con un grupo no alcanza.
-    const { data, error } = await supabase.from("proyectos").select("id, nombre");
+    const { data, error } = await supabase.from("proyectos").select("id, nombre").order("nombre");
     if (error) throw error;
     const asignado = await Promise.all(
       data.map(async (p) => {

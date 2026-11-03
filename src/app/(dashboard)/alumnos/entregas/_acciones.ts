@@ -124,20 +124,19 @@ export async function guardarTipoHito(formData: FormData) {
 }
 
 // Hasta el cierre del hito, un alumno borra una versión (del grupo o la suya individual) que todavía no
-// tiene devoluciones. Primero el archivo y después la fila; la base decide si se puede (alumnos_entrega_editable).
+// tiene devoluciones. Primero la fila (la base decide si se puede, con alumnos_entrega_editable) y después el
+// archivo, que ya quedó sin versión: así nunca queda una versión listada sin su archivo.
 export async function borrarVersion(formData: FormData) {
   await requireRol("alumno");
   const entregaId = String(formData.get("entrega_id"));
   const volver = volverA(formData);
-  const noSePuede = `${volver}&error=${encodeURIComponent("Esa versión ya no se puede borrar: pasó el cierre o ya tiene una devolución.")}`;
   const supabase = await createClient();
-  const { data: entrega } = await supabase.from("alumnos_entregas").select("archivo_path").eq("id", entregaId).maybeSingle();
-  if (!entrega) redirect(noSePuede);
-  const { data: borrados, error } = await supabase.storage.from(BUCKET).remove([entrega.archivo_path]);
-  if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo borrar el archivo: ${error.message}`)}`);
-  if (!borrados?.length) redirect(noSePuede);
-  const { data: filas, error: errorFila } = await supabase.from("alumnos_entregas").delete().eq("id", entregaId).select("id");
-  if (errorFila || !filas?.length) redirect(noSePuede);
+  const { data: filas, error } = await supabase.from("alumnos_entregas").delete().eq("id", entregaId).select("archivo_path");
+  if (error || !filas?.length) {
+    redirect(`${volver}&error=${encodeURIComponent("Esa versión ya no se puede borrar: pasó el cierre o ya tiene una devolución.")}`);
+  }
+  // ponytail: si falla, el archivo queda huérfano (no se ve en ningún lado); no vale la pena frenar al alumno por eso.
+  await supabase.storage.from(BUCKET).remove([filas[0].archivo_path]);
   revalidatePath("/alumnos/entregas");
   redirect(volver);
 }
