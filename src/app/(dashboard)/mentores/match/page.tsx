@@ -6,7 +6,9 @@ import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { BotonEnviar } from "../_components/boton-enviar";
+import { Encabezado } from "../_components/accion";
 import { Estrellas } from "../_components/estrellas";
 import { sugerirMentores } from "./agente";
 
@@ -133,8 +135,8 @@ async function marcarRevisada(formData: FormData) {
 
 async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">, "searchParams">) {
   const { error, ok } = await searchParams;
-  if (error) return <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>;
-  if (ok) return <p className="mb-6 border p-3 text-sm">⏱ {ok}</p>;
+  if (error) return <p role="alert" className="mb-6 border-l-4 border-destructive bg-destructive/5 p-4 text-base text-destructive">{error}</p>;
+  if (ok) return <p role="status" className="mb-6 border-l-4 border-primary bg-card p-4 text-base">✓ {ok}</p>;
 }
 
 export default async function Match({ searchParams }: PageProps<"/mentores/match">) {
@@ -170,15 +172,27 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
 
   return (
     <>
-      <h1 className="mb-2 font-serif text-2xl">Match proyecto–mentor</h1>
-      <p className="mb-8 max-w-2xl text-sm text-[#666]">
-        El agente lee la descripción del proyecto y los perfiles de los mentores y sugiere hasta 3. Son solo
-        sugerencias: nadie queda asignado hasta que lo aceptás.
-      </p>
+      <Encabezado
+        titulo="Asignar mentores a proyectos"
+        bajada="El asistente compara cada proyecto y su equipo con los perfiles de los mentores, y te sugiere hasta 3. Nadie queda asignado hasta que vos lo elegís."
+        volver={{ href: "/mentores", texto: "Volver al inicio de Mentores" }}
+      />
+      <ol className="mb-8 grid gap-3 sm:grid-cols-3">
+        {[
+          ["1", "Apretá “Pedir sugerencias” en el proyecto."],
+          ["2", "Leé por qué el asistente sugiere a cada mentor."],
+          ["3", "Apretá “Asignar” en el que te guste."],
+        ].map(([n, t]) => (
+          <li key={n} className="flex items-center gap-3 border bg-background p-4 text-base">
+            <span className="flex size-8 shrink-0 items-center justify-center bg-primary font-medium text-primary-foreground">{n}</span>
+            {t}
+          </li>
+        ))}
+      </ol>
       <Suspense><MensajeError searchParams={searchParams} /></Suspense>
 
       {sinClaveIA && (
-        <p className="mb-8 max-w-2xl border p-4 text-sm text-[#666]">
+        <p className="mb-8 max-w-2xl border-l-4 border-primary bg-card p-4 text-base">
           El agente no está disponible porque falta la clave de IA (AI_GATEWAY_API_KEY). Igual podés ver las
           métricas, los mentores asignados, quitarlos y calificar los matches; solo no se pueden pedir sugerencias nuevas.
         </p>
@@ -186,32 +200,24 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
 
       {alertas.length > 0 && (
         <section id="alertas" className="mb-10 border border-primary p-6">
-          <h2 className="mb-4 font-serif text-lg">⚠ Alertas del Match sin revisar ({alertas.length})</h2>
+          <h2 className="mb-1 font-serif text-xl">⚠ El asistente te dejó {alertas.length} {alertas.length === 1 ? "aviso" : "avisos"}</h2>
+          <p className="mb-4 text-base text-[#555]">Leelos y, cuando ya lo tengas en cuenta, apretá “Ya lo leí”.</p>
           <ul className="divide-y">
             {alertas.map((a) => (
               <li key={a.id} className="flex flex-wrap items-start justify-between gap-4 py-3">
-                <div className="max-w-2xl text-sm">
+                <div className="max-w-2xl text-base">
                   <p className="font-medium">{nombreProyecto(a.proyecto_id)} · <span className="font-normal text-[#666]">{fechaCorta(a.created_at)}</span></p>
                   <p className="text-[#666]">{a.aviso}</p>
                 </div>
                 <form action={marcarRevisada}>
                   <input type="hidden" name="id" value={a.id} />
-                  <BotonEnviar size="sm" variant="outline" enviando="…">Marcar como revisada</BotonEnviar>
+                  <BotonEnviar variant="outline" className="h-11 px-4 text-base" enviando="Guardando…">Ya lo leí</BotonEnviar>
                 </form>
               </li>
             ))}
           </ul>
         </section>
       )}
-
-      <div className="mb-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {metricas.map(([label, valor]) => (
-          <Card key={label}>
-            <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
-            <CardContent className="font-serif text-4xl">{valor}</CardContent>
-          </Card>
-        ))}
-      </div>
 
       {proyectos.data!.length === 0 && <p className="text-[#666]">Todavía no hay proyectos cargados.</p>}
 
@@ -230,19 +236,19 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                     <h2 className="font-serif text-xl">{p.nombre}</h2>
                     <Badge variant="outline">{p.estado}</Badge>
                   </div>
-                  <p className="mt-1 text-sm text-[#666]">{p.descripcion || "Sin descripción"}</p>
+                  <p className="mt-1 text-base text-[#555]">{p.descripcion || "Sin descripción"}</p>
                 </div>
                 <form action={pedirSugerencias}>
                   <input type="hidden" name="proyecto_id" value={p.id} />
-                  <BotonEnviar enviando="El agente está pensando…" disabled={sinClaveIA}>
-                    {deEste.length ? "Pedir más sugerencias" : "Pedir sugerencias al agente"}
+                  <BotonEnviar enviando="Pensando, puede tardar unos segundos…" disabled={sinClaveIA} className="h-12 px-5 text-base">
+                    {deEste.length ? "Pedir otras sugerencias" : "Pedir sugerencias"}
                   </BotonEnviar>
                 </form>
               </div>
 
-              <div className="mb-4 text-sm">
-                <span className="text-[#666]">Mentores: </span>
-                {asignados.length === 0 && "ninguno todavía"}
+              <div className="mb-4 text-base">
+                <span className="text-[#555]">Mentor asignado: </span>
+                {asignados.length === 0 && <span className="font-medium text-destructive">todavía ninguno</span>}
                 <ul className="mt-2 grid gap-2">
                   {asignados.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-start gap-3">
@@ -251,8 +257,8 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                         <span className="text-xs text-[#666]">⏱ se ahorraron {duracion(s.minutos_ahorrados)}</span>
                       )}
                       <details className="text-[#666]">
-                        <summary className="cursor-pointer hover:text-primary">
-                          {s.satisfaccion ? <span className="text-primary">{"★".repeat(s.satisfaccion)}{"☆".repeat(5 - s.satisfaccion)}</span> : "★ Calificar"}
+                        <summary className={buttonVariants({ variant: "outline", className: "h-10 cursor-pointer px-3 text-base" })}>
+                          {s.satisfaccion ? <span className="text-primary">{"★".repeat(s.satisfaccion)}{"☆".repeat(5 - s.satisfaccion)}</span> : "★ Calificar cómo funcionó"}
                         </summary>
                         <form action={calificar} className="mt-2 grid w-80 gap-2">
                           <input type="hidden" name="id" value={s.id} />
@@ -264,7 +270,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                         </form>
                       </details>
                       <details className="text-[#666]">
-                        <summary className="cursor-pointer hover:text-primary">Quitar</summary>
+                        <summary className={buttonVariants({ variant: "outline", className: "h-10 cursor-pointer px-3 text-base" })}>Quitar mentor</summary>
                         <form action={quitar} className="mt-2 grid w-80 gap-2">
                           <input type="hidden" name="id" value={s.id} />
                           <textarea name="motivo" required minLength={5} rows={2} placeholder="¿Por qué se quita? (obligatorio)"
@@ -283,26 +289,24 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 )}
               </div>
 
-              {aviso && <p className="mb-4 border-l-2 border-primary pl-3 text-sm">⚠ {aviso}</p>}
+              {aviso && <p className="mb-4 border-l-4 border-primary bg-background p-3 text-base">⚠ {aviso}</p>}
 
               {pendientes.length > 0 && (
                 <>
-                <p className="border-t pt-4 text-sm">
-                  <span className="font-medium">Porcentaje de acierto</span>
-                  <span className="text-xs text-[#666]"> · qué tanto se parece la trayectoria del mentor a este proyecto</span>
-                </p>
+                <p className="border-t pt-4 text-lg font-medium">Sugerencias del asistente</p>
+                <p className="text-base text-[#555]">El porcentaje dice qué tanto encaja el mentor con este proyecto. Elegí uno con “Asignar”.</p>
                 <ul className="divide-y">
                   {pendientes.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-4 py-4">
                       <span className="w-20 font-serif text-2xl">{s.afinidad}%</span>
                       <div className="min-w-60 flex-1">
                         <p className="font-medium">{nombre(s.mentor_id)}</p>
-                        <p className="text-sm text-[#666]">{s.motivo}</p>
+                        <p className="text-base text-[#555]">{s.motivo}</p>
                       </div>
                       <form action={decidir} className="flex gap-2">
                         <input type="hidden" name="id" value={s.id} />
-                        <BotonEnviar name="estado" value="aceptada" size="sm">Aceptar</BotonEnviar>
-                        <BotonEnviar name="estado" value="rechazada" size="sm" variant="outline">Rechazar</BotonEnviar>
+                        <BotonEnviar name="estado" value="aceptada" className="h-11 px-4 text-base" enviando="Asignando…">Asignar a {nombre(s.mentor_id).split(" ")[0]}</BotonEnviar>
+                        <BotonEnviar name="estado" value="rechazada" variant="outline" className="h-11 px-4 text-base" enviando="Guardando…">No, descartar</BotonEnviar>
                       </form>
                     </li>
                   ))}
@@ -313,6 +317,17 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
           );
         })}
       </div>
+      <h2 className="mt-12 mb-1 font-serif text-xl">Cómo viene funcionando el asistente</h2>
+      <p className="mb-4 text-base text-[#555]">Números para la cátedra. No hace falta hacer nada acá.</p>
+      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {metricas.map(([label, valor]) => (
+          <Card key={label}>
+            <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
+            <CardContent className="font-serif text-3xl">{valor}</CardContent>
+          </Card>
+        ))}
+      </div>
+
     </>
   );
 }
