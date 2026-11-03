@@ -262,3 +262,7 @@ insert into alumnos_ideas_reportes (idea_id, persona_id, motivo)
 select i.id, pe.id, 'Me parece que repite una idea que ya está en el banco con otro nombre.'
 from alumnos_ideas i, personas pe
 where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@alumnos.austral.edu.ar';
+
+-- GRUPO ALUMNOS: el Kickoff pide entrega grupal e individual (para probar las entregas individuales).
+insert into alumnos_hitos_tipo (evento_id, tipo)
+select id, 'ambas' from eventos where nombre = 'Kickoff';
