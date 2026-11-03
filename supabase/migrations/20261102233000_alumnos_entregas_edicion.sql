@@ -1,0 +1,80 @@
+-- GRUPO ALUMNOS: apertura y cierre de cada entrega, y corregir una entrega hasta el cierre.
+-- Los profesores fijan, en cada hito, la fecha y hora de apertura y de cierre de la entrega (como en el campus).
+--   * Apertura: antes no se puede subir nada. Sin apertura, se puede subir desde ya.
+--   * Cierre: si no lo fijan, cierra a la fecha y hora del hito. Lo que se sube después queda como entregado con
+--     retraso (se sigue pudiendo subir).
+-- Hasta el cierre, los alumnos pueden borrar una versión o corregir su nota:
+--   * la del grupo, cualquier integrante; la individual, solo su dueño;
+--   * nunca si ya tiene una devolución de los profesores o del mentor (para no perder lo que comentaron).
+-- Después del cierre todas las versiones quedan fijas. Para cambiar el archivo se borra y se sube otro.
+
+-- Apertura y cierre de la entrega de cada hito (van junto al tipo de entrega que ya eligen los profesores).
+alter table alumnos_hitos_tipo
+  add column apertura timestamptz,
+  add column cierre timestamptz,
+  add constraint alumnos_hitos_apertura_antes_del_cierre check (apertura is null or cierre is null or apertura < cierre);
+
+-- Antes de la apertura los alumnos no suben (se suma, como restricción, a las reglas de subida que ya había).
+create policy "alumnos suben desde la apertura" on alumnos_entregas as restrictive for insert to authenticated
+  with check (
+    mi_rol() is distinct from 'alumno'
+    or now() >= coalesce((select h.apertura from alumnos_hitos_tipo h where h.evento_id = alumnos_entregas.evento_id), '-infinity')
+  );
+
+create function public.alumnos_cierre_hito(p_evento uuid) returns timestamptz
+language sql stable security invoker set search_path = public as $$
+  select coalesce(
+    (select cierre from alumnos_hitos_tipo where evento_id = p_evento),
+    (select inicio from eventos where id = p_evento)
+  )
+$$;
+
+-- ¿Puedo borrar o corregir esta versión? Security definer para poder mirar si tiene devoluciones (el alumno
+-- no ve las de otros) sin abrirle nada más: solo devuelve sí o no.
+create function public.alumnos_entrega_editable(p_entrega uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select mi_rol() = 'alumno' and exists (
+    select 1 from alumnos_entregas e
+    where e.id = p_entrega
+      and (
+        (e.proyecto_id is not null and alumnos_soy_integrante(e.proyecto_id::text))
+        or (e.proyecto_id is null and e.persona_id = mi_persona_id())
+      )
+      and now() < alumnos_cierre_hito(e.evento_id)
+      and not exists (select 1 from alumnos_entregas_devoluciones d where d.entrega_id = e.id)
+  )
+$$;
+
+-- Borrar la versión (la fila). El archivo se borra después, con la regla de storage de abajo.
+create policy "alumno borra hasta el cierre" on alumnos_entregas for delete to authenticated
+  using (alumnos_entrega_editable(id));
+
+-- Corregir la nota: solo cambia la nota, nada más de la versión.
+create function public.alumnos_editar_nota_entrega(p_entrega uuid, p_nota text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not alumnos_entrega_editable(p_entrega) then
+    raise exception 'Esta versión ya no se puede corregir: pasó el cierre o ya tiene una devolución.';
+  end if;
+  update alumnos_entregas set nota = nullif(left(btrim(p_nota), 500), '') where id = p_entrega;
+end;
+$$;
+
+-- Archivos sin versión registrada (la que se acaba de borrar, o una subida que no llegó a registrarse), en la
+-- carpeta del grupo o en la individual propia. Primero se borra la fila (que es la que decide si se puede) y
+-- después el archivo: así nunca queda una versión en la lista con el archivo perdido.
+create policy "alumnos-entregas: alumno borra archivos sin versión" on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'alumnos-entregas'
+    and mi_rol() = 'alumno'
+    and (
+      alumnos_soy_integrante((storage.foldername(name))[1])
+      or ((storage.foldername(name))[1] = 'individual' and (storage.foldername(name))[2] = mi_persona_id()::text)
+    )
+    and not exists (select 1 from public.alumnos_entregas e where e.archivo_path = objects.name)
+  );
+
+revoke execute on function public.alumnos_cierre_hito(uuid), public.alumnos_entrega_editable(uuid),
+  public.alumnos_editar_nota_entrega(uuid, text) from public, anon;
+grant execute on function public.alumnos_cierre_hito(uuid), public.alumnos_entrega_editable(uuid),
+  public.alumnos_editar_nota_entrega(uuid, text) to authenticated;

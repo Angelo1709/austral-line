@@ -263,6 +263,10 @@ select i.id, pe.id, 'Me parece que repite una idea que ya está en el banco con 
 from alumnos_ideas i, personas pe
 where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@alumnos.austral.edu.ar';
 
+-- GRUPO ALUMNOS: el Kickoff pide entrega grupal e individual (para probar las entregas individuales).
+insert into alumnos_hitos_tipo (evento_id, tipo)
+select id, 'ambas' from eventos where nombre = 'Kickoff';
+
 -- GRUPO MENTORES: una reunión de Pablo, que tiene perfil publicado, para ver el resumen con perfil (Marta no tiene).
 insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar)
 select p.id, m.id, now() + interval '4 days', 'Sala 3'

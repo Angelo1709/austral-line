@@ -13,30 +13,31 @@ const LIMITE_MB = 50;
 const nombreSeguro = (nombre: string) =>
   nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w.-]+/g, "_").slice(-120) || "archivo";
 
+// De quién es la entrega: del grupo (proyectoId) o individual del alumno logueado (proyectoId = null).
 // Paso 1: calcula la próxima versión y devuelve una URL firmada para subir el archivo directo al almacenamiento.
-export async function prepararSubida(proyectoId: string, eventoId: string, nombre: string, tamano: number) {
-  await requireRol("alumno");
+export async function prepararSubida(proyectoId: string | null, eventoId: string, nombre: string, tamano: number) {
+  const persona = await requireRol("alumno");
   if (tamano > LIMITE_MB * 1024 * 1024) return { error: `El archivo supera los ${LIMITE_MB} MB.` };
   const supabase = await createClient();
-  const { data: ultima, error } = await supabase
-    .from("alumnos_entregas")
-    .select("version")
-    .eq("proyecto_id", proyectoId)
-    .eq("evento_id", eventoId)
+  const deQuien = supabase.from("alumnos_entregas").select("version").eq("evento_id", eventoId);
+  const { data: ultima, error } = await (proyectoId
+    ? deQuien.eq("proyecto_id", proyectoId)
+    : deQuien.is("proyecto_id", null).eq("persona_id", persona.id))
     .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) return { error: `No se pudo preparar la subida: ${error.message}` };
   const version = (ultima?.version ?? 0) + 1;
-  const path = `${proyectoId}/${eventoId}/v${version}-${nombreSeguro(nombre)}`;
+  const carpeta = proyectoId ? proyectoId : `individual/${persona.id}`;
+  const path = `${carpeta}/${eventoId}/v${version}-${nombreSeguro(nombre)}`;
   const { data, error: errorUrl } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
-  if (errorUrl) return { error: `No tenés permiso para subir entregas de este grupo (${errorUrl.message}).` };
+  if (errorUrl) return { error: `No tenés permiso para subir esta entrega (${errorUrl.message}).` };
   return { signedUrl: data.signedUrl, path, version };
 }
 
 // Paso 2: con el archivo ya subido, registra la versión a nombre de quien la subió.
 export async function registrarEntrega(datos: {
-  proyectoId: string;
+  proyectoId: string | null;
   eventoId: string;
   version: number;
   path: string;
@@ -48,6 +49,7 @@ export async function registrarEntrega(datos: {
   const supabase = await createClient();
   const { error } = await supabase.from("alumnos_entregas").insert({
     proyecto_id: datos.proyectoId,
+    persona_id: datos.proyectoId ? null : persona.id,
     evento_id: datos.eventoId,
     version: datos.version,
     archivo_path: datos.path,
@@ -56,7 +58,8 @@ export async function registrarEntrega(datos: {
     nota: datos.nota.trim().slice(0, 500) || null,
     subida_por: persona.id,
   });
-  if (error?.code === "23505") return { error: "Alguien del grupo subió una versión al mismo tiempo. Probá de nuevo." };
+  if (error?.code === "23505") return { error: "Se subió otra versión al mismo tiempo. Probá de nuevo." };
+  if (error?.code === "42501") return { error: "No se puede subir: este hito no pide este tipo de entrega o todavía no abrió." };
   if (error) return { error: `No se pudo registrar la entrega: ${error.message}` };
   revalidatePath("/alumnos/entregas");
   return { ok: true };
@@ -86,6 +89,68 @@ export async function publicarDevolucion(formData: FormData) {
     .from("alumnos_entregas_devoluciones")
     .insert({ entrega_id: entregaId, respuesta_a: respuestaA, autor_id: persona.id, texto });
   if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo publicar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+// Los profesores eligen si un hito pide entrega grupal, individual o ambas, y hasta cuándo se puede corregir.
+export async function guardarTipoHito(formData: FormData) {
+  await requireRol(); // sin roles = solo admin (profesores)
+  const eventoId = String(formData.get("evento_id"));
+  const tipo = String(formData.get("tipo"));
+  // "2026-11-20T18:00" del formulario, en hora de Argentina. Apertura vacía = se sube desde ya;
+  // cierre vacío = cierra a la fecha y hora del hito.
+  const aperturaLocal = String(formData.get("apertura") ?? "");
+  const cierreLocal = String(formData.get("cierre") ?? "");
+  const aIso = (local: string) => (local ? new Date(`${local}:00-03:00`).toISOString() : null);
+  const volver = volverA(formData);
+  if (!["grupal", "individual", "ambas"].includes(tipo)) redirect(`${volver}&error=${encodeURIComponent("Tipo de entrega inválido.")}`);
+  const valida = (local: string) => !local || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local);
+  if (!valida(aperturaLocal) || !valida(cierreLocal)) redirect(`${volver}&error=${encodeURIComponent("Alguna fecha no es válida.")}`);
+  if (aperturaLocal && cierreLocal && aperturaLocal >= cierreLocal) {
+    redirect(`${volver}&error=${encodeURIComponent("La apertura tiene que ser antes del cierre.")}`);
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("alumnos_hitos_tipo").upsert({
+    evento_id: eventoId,
+    tipo,
+    apertura: aIso(aperturaLocal),
+    cierre: aIso(cierreLocal),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo guardar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+// Hasta el cierre del hito, un alumno borra una versión (del grupo o la suya individual) que todavía no
+// tiene devoluciones. Primero la fila (la base decide si se puede, con alumnos_entrega_editable) y después el
+// archivo, que ya quedó sin versión: así nunca queda una versión listada sin su archivo.
+export async function borrarVersion(formData: FormData) {
+  await requireRol("alumno");
+  const entregaId = String(formData.get("entrega_id"));
+  const volver = volverA(formData);
+  const supabase = await createClient();
+  const { data: filas, error } = await supabase.from("alumnos_entregas").delete().eq("id", entregaId).select("archivo_path");
+  if (error || !filas?.length) {
+    redirect(`${volver}&error=${encodeURIComponent("Esa versión ya no se puede borrar: pasó el cierre o ya tiene una devolución.")}`);
+  }
+  // ponytail: si falla, el archivo queda huérfano (no se ve en ningún lado); no vale la pena frenar al alumno por eso.
+  await supabase.storage.from(BUCKET).remove([filas[0].archivo_path]);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+// Hasta el cierre del hito, corregir la nota ("qué cambió") de una versión sin devoluciones.
+export async function corregirNota(formData: FormData) {
+  await requireRol("alumno");
+  const volver = volverA(formData);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("alumnos_editar_nota_entrega", {
+    p_entrega: String(formData.get("entrega_id")),
+    p_nota: String(formData.get("nota") ?? ""),
+  });
+  if (error) redirect(`${volver}&error=${encodeURIComponent(error.message)}`);
   revalidatePath("/alumnos/entregas");
   redirect(volver);
 }
