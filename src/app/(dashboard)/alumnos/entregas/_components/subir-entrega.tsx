@@ -2,9 +2,9 @@
 
 // GRUPO ALUMNOS — formulario para subir una versión nueva de una entrega.
 // El archivo va directo al almacenamiento (con una URL firmada), así no hay límite de tamaño del servidor.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileUp } from "lucide-react";
+import { FileUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { prepararSubida, registrarEntrega } from "../_acciones";
 
@@ -15,6 +15,14 @@ export function SubirEntrega({ proyectoId, eventoId, hayVersiones }: { proyectoI
   const [estado, setEstado] = useState<{ subiendo: boolean; error?: string; ok?: string }>({ subiendo: false });
   const [elegido, setElegido] = useState<string | null>(null);
   const idArchivo = `archivo-${eventoId}`;
+  const input = useRef<HTMLInputElement>(null);
+
+  // Saca el archivo elegido antes de subirlo (por si se equivocaron de archivo).
+  function quitar() {
+    if (input.current) input.current.value = "";
+    setElegido(null);
+    setEstado({ subiendo: false });
+  }
 
   async function subir(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,6 +73,7 @@ export function SubirEntrega({ proyectoId, eventoId, hayVersiones }: { proyectoI
       <form onSubmit={subir} className="mt-3 grid gap-3 border bg-background p-4">
         {/* El input real queda oculto; el recuadro con el ícono es lo que se toca para elegir el archivo. */}
         <input
+          ref={input}
           id={idArchivo}
           type="file"
           name="archivo"
@@ -75,18 +84,31 @@ export function SubirEntrega({ proyectoId, eventoId, hayVersiones }: { proyectoI
             setEstado({ subiendo: false });
           }}
         />
-        <label
-          htmlFor={idArchivo}
-          className="flex cursor-pointer items-center gap-4 border border-dashed bg-card px-4 py-4 hover:border-primary"
-        >
-          <FileUp className="size-8 shrink-0 text-[#666]" aria-hidden />
-          <span className="grid gap-0.5">
-            <span className="font-medium">{elegido ? elegido : "Elegir archivo"}</span>
-            <span className="text-xs text-[#666]">
-              {elegido ? "Tocá para cambiarlo" : `PDF, presentación, documento o imagen · hasta ${LIMITE_MB} MB`}
+        <div className="relative">
+          <label
+            htmlFor={idArchivo}
+            className="flex cursor-pointer items-center gap-4 border border-dashed bg-card px-4 py-4 pr-10 hover:border-primary"
+          >
+            <FileUp className="size-8 shrink-0 text-[#666]" aria-hidden />
+            <span className="grid gap-0.5">
+              <span className="font-medium">{elegido ? elegido : "Elegir archivo"}</span>
+              <span className="text-xs text-[#666]">
+                {elegido ? "Tocá para cambiarlo o la cruz para quitarlo" : `PDF, presentación, documento o imagen · hasta ${LIMITE_MB} MB`}
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+          {elegido && (
+            <button
+              type="button"
+              onClick={quitar}
+              aria-label="Quitar el archivo elegido"
+              title="Quitar el archivo elegido"
+              className="absolute top-1.5 right-1.5 p-1 text-[#666] hover:text-foreground"
+            >
+              <X className="size-4" aria-hidden />
+            </button>
+          )}
+        </div>
         <textarea
           name="nota"
           rows={2}
