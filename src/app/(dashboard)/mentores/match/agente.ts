@@ -1,5 +1,6 @@
 // GRUPO MENTORES — agente de match proyecto–mentor.
-// Lee el proyecto, los perfiles de mentores y los matches anteriores, y propone hasta 3 mentores.
+// Lee el proyecto, el perfil de los alumnos del equipo, los perfiles de mentores y los matches anteriores,
+// y propone hasta 3 mentores.
 // No asigna nada: devuelve sugerencias que el coordinador acepta o rechaza.
 import { generateText, jsonSchema, Output } from "ai";
 import type { createClient } from "@/lib/supabase/server";
@@ -42,6 +43,8 @@ Tu trabajo es SUGERIR mentores para un proyecto; la decisión final la toma el c
 Cómo comparar:
 - Lo central es la similitud entre lo que hace el proyecto y A LO QUE SE DEDICÓ el mentor: su bio (trayectoria y formación),
   su industria, empresa y cargo. "En qué puede ayudar" y los años de experiencia ayudan a confirmar, pero pesan menos.
+- Mirá también al equipo: la carrera, lo que cuenta cada alumno de sí y los temas que más le interesan.
+  Un mentor que complementa lo que al equipo le falta (por ejemplo, un equipo sin nadie de finanzas) suma afinidad.
 - La afinidad (0 a 100) mide esa similitud: alta si su trayectoria está en el mismo campo que el proyecto,
   baja si solo podría ayudar en algo general (por ejemplo, finanzas para cualquier startup).
 - En el "motivo" nombrá concretamente qué de su trayectoria se parece al proyecto.
@@ -52,7 +55,39 @@ Reglas:
 - Tené en cuenta los matches anteriores: si el coordinador ya rechazó a un mentor para este proyecto, no lo vuelvas a sugerir salvo que sea claramente el mejor.
 - Si un mentor no tiene perfil publicado, sabés muy poco de él: sugerilo solo si no hay nada mejor y avisalo.
 - Si a un mentor ya lo quitaron de otros proyectos, tenelo en cuenta y mencionalo en el motivo si lo sugerís.
+- Si el equipo no tiene perfiles cargados, basate en el proyecto y mencionalo en "aviso" solo si además el proyecto tiene poca información.
 - Si ningún mentor encaja bien, si el proyecto casi no tiene descripción o si ves datos raros, explicalo en "aviso". Respondé en español.`;
+
+const MAX_INTERESES = 3;
+
+// Perfil de los alumnos del equipo (los carga cada alumno en la sección Alumnos). Sin nombres ni mails:
+// al agente solo le sirve qué estudian, qué cuentan de sí y qué temas les interesan.
+async function perfilEquipo(supabase: Supabase, proyectoId: string) {
+  const { data: integrantes, error } = await supabase
+    .from("proyecto_integrantes")
+    .select("persona_id")
+    .eq("proyecto_id", proyectoId);
+  if (error) throw error;
+  const ids = integrantes.map((i) => i.persona_id);
+  if (ids.length === 0) return [];
+
+  const [perfiles, carreras, intereses] = await Promise.all([
+    supabase.from("alumnos_perfiles").select("persona_id, sobre_mi").in("persona_id", ids),
+    supabase.from("alumnos_carreras").select("persona_id, alumnos_carreras_maestro(nombre)").in("persona_id", ids),
+    supabase.from("alumnos_intereses").select("persona_id, estrellas, alumnos_intereses_maestro(nombre)").in("persona_id", ids),
+  ]);
+  for (const r of [perfiles, carreras, intereses]) if (r.error) throw r.error;
+
+  return ids.map((id) => ({
+    carrera: carreras.data!.find((c) => c.persona_id === id)?.alumnos_carreras_maestro.nombre ?? "(sin completar)",
+    sobre_mi: perfiles.data!.find((p) => p.persona_id === id)?.sobre_mi || "(sin completar)",
+    temas_que_mas_le_interesan: intereses.data!
+      .filter((i) => i.persona_id === id)
+      .sort((a, b) => b.estrellas - a.estrellas)
+      .slice(0, MAX_INTERESES)
+      .map((i) => i.alumnos_intereses_maestro.nombre),
+  }));
+}
 
 export async function sugerirMentores(supabase: Supabase, proyectoId: string): Promise<Resultado> {
   const [proyecto, mentores, perfiles, historial] = await Promise.all([
@@ -63,6 +98,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
     supabase.from("mentores_sugerencias").select("proyecto_id, mentor_id, estado"),
   ]);
   for (const r of [proyecto, mentores, perfiles, historial]) if (r.error) throw r.error;
+  const equipo = await perfilEquipo(supabase, proyectoId);
 
   // Ya asignados, quitados de este proyecto o esperando decisión: pedir de nuevo trae otras opciones.
   const excluidos = new Set(
@@ -101,7 +137,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
     model: "anthropic/claude-sonnet-5.5",
     instructions: instrucciones,
     output: Output.object({ schema }),
-    prompt: JSON.stringify({ proyecto: proyecto.data, mentores: candidatos }, null, 2),
+    prompt: JSON.stringify({ proyecto: proyecto.data, equipo, mentores: candidatos }, null, 2),
   });
 
   // Nunca confiar ciegamente en la IA: solo ids válidos, sin repetir y como máximo 3.
