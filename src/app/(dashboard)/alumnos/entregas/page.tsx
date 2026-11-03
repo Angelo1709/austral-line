@@ -187,10 +187,8 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
 
                 <div className="grid gap-4 border-t px-6 py-5">
                   <div className="grid gap-1 border-b pb-4 text-sm">
-                    <p className="flex flex-wrap gap-x-4 gap-y-1">
-                      {apertura && <span><span className="font-medium">Apertura:</span> {fechaLarga(apertura)}</span>}
-                      <span><span className="font-medium">Cierre:</span> {fechaLarga(cierre)}</span>
-                    </p>
+                    {apertura && <p><span className="font-medium">Apertura:</span> {fechaLarga(apertura)}</p>}
+                    <p><span className="font-medium">Cierre:</span> {fechaLarga(cierre)}</p>
                     <p className={cn("text-xs", abiertoACambios ? "text-[#666]" : "text-destructive")}>
                       {todaviaNoAbre
                         ? "Todavía no abrió: vas a poder subir la entrega desde la apertura."
