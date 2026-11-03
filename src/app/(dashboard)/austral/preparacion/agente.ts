@@ -152,7 +152,8 @@ export async function generarMaterial(supabase: Supabase, proyectoId: string, ad
         aviso: resto.aviso,
         fuentes: usados.map((d) => d.nombre),
         documentos: documentos.data.map((d) => d.id),
-        segundos_generacion: Math.round((Date.now() - inicio) / 100) / 10,
+        // Sin documentos no hubo generación: no cuenta para el tiempo promedio del panel.
+        segundos_generacion: usados.length ? Math.round((Date.now() - inicio) / 100) / 10 : null,
         generado_por: adminId,
         generado_at: new Date().toISOString(),
         aprobado_por: null,
