@@ -1,7 +1,7 @@
 // GRUPO MENTORES — esta carpeta es de ustedes.
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { ArrowRight, BadgeCheck, Clock, Hourglass, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarDays, Clock, Hourglass, MessageSquareText, Sparkles, TriangleAlert, UserRound, UsersRound } from "lucide-react";
 import { getUsuario, requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import { urlBase } from "./reuniones/agente";
 import { pedirFeedback } from "./feedback/agente";
+import { Accion, Encabezado } from "./_components/accion";
 
 async function marcarRevisado(formData: FormData) {
   "use server";
@@ -22,18 +23,8 @@ async function marcarRevisado(formData: FormData) {
   revalidatePath("/mentores");
 }
 
-const enlace = "text-sm text-[#666] underline underline-offset-4 hover:text-primary";
-
-function EnlacesReuniones({ esAdmin }: { esAdmin: boolean }) {
-  return (
-    <div className="flex flex-wrap gap-6">
-      <Link href="/mentores/reuniones" className={enlace}>Reuniones y resúmenes pre-reunión</Link>
-      {esAdmin
-        ? <Link href="/mentores/feedback" className={enlace}>Feedback de reuniones</Link>
-        : <Link href="/mentores/mi-feedback" className={enlace}>Mi feedback</Link>}
-    </div>
-  );
-}
+// Aislado porque la fecha actual es un dato impuro (regla react-hooks/purity).
+const ahoraIso = () => new Date().toISOString();
 
 export default async function Mentores() {
   // Propio, no solo del layout: la sección Mentores deja entrar alumnos para otra pantalla
@@ -45,31 +36,58 @@ export default async function Mentores() {
 
   if (persona.rol === "admin") return <PanelAdmin />;
 
-  const [{ data: personas, error }, { data: miPerfil }] = await Promise.all([
+  const [{ data: personas, error }, { data: miPerfil }, encuestas, reuniones] = await Promise.all([
     supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle(),
+    supabase.from("mentores_encuestas").select("id", { count: "exact", head: true }).eq("persona_id", persona.id).eq("estado", "pendiente"),
+    supabase.from("mentores_reuniones").select("id", { count: "exact", head: true })
+      .eq("mentor_id", persona.id).eq("cancelada", false).gt("inicio", ahoraIso()),
   ]);
   if (error) throw error;
+  if (encuestas.error) throw encuestas.error;
+  if (reuniones.error) throw reuniones.error;
+  const publicado = miPerfil?.estado === "publicado";
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-serif text-2xl">Mentores</h1>
-        <EnlacesReuniones esAdmin={false} />
+      <Encabezado
+        titulo={`Hola, ${persona.nombre.split(" ")[0]}`}
+        bajada="Elegí qué querés hacer. Si algo tiene un número, es porque te está esperando."
+      />
+
+      <div className="mb-12 grid gap-4 md:grid-cols-3">
+        <Accion
+          href="/mentores/mi-feedback"
+          icono={MessageSquareText}
+          titulo="Contar cómo te fue"
+          descripcion="Después de cada reunión con un equipo te hacemos 3 preguntas cortas. Lo lee solo el coordinador."
+          boton={encuestas.count ? "Contestar ahora" : "Ver mis respuestas"}
+          pendientes={encuestas.count ?? 0}
+          textoPendientes="para contestar"
+        />
+        <Accion
+          href="/mentores/reuniones"
+          icono={CalendarDays}
+          titulo="Mis reuniones"
+          descripcion="Ver tus próximas reuniones, el resumen para prepararte y anotar qué se habló."
+          boton="Ver reuniones"
+          pendientes={reuniones.count ?? 0}
+          textoPendientes={reuniones.count === 1 ? "próxima" : "próximas"}
+        />
+        <Accion
+          href="/mentores/perfil-publico"
+          icono={UserRound}
+          titulo="Mi perfil"
+          descripcion={publicado
+            ? "Tu perfil ya lo ven los alumnos. Entrá si querés cambiar algo."
+            : "Contanos a qué te dedicás para que los alumnos te conozcan. Tarda 5 minutos."}
+          boton={publicado ? "Editar mi perfil" : miPerfil ? "Terminar mi perfil" : "Cargar mi perfil"}
+          pendientes={publicado ? 0 : 1}
+          textoPendientes="sin terminar"
+        />
       </div>
 
-      <Card className="mb-8 flex-row flex-wrap items-center justify-between gap-4 px-5">
-        <div className="grid gap-1.5">
-          <p className="text-sm text-[#666]">Tu perfil</p>
-          <Badge variant={miPerfil?.estado === "publicado" ? "default" : "outline"} className="w-fit">
-            {miPerfil?.estado === "publicado" ? "Publicado" : "Todavía no lo completaste"}
-          </Badge>
-        </div>
-        <Link href="/mentores/perfil-publico" className={buttonVariants({ size: "lg" })}>
-          {miPerfil ? "Editar perfil" : "Cargar perfil"}
-        </Link>
-      </Card>
-
+      <h2 className="mb-3 font-serif text-xl">Otros mentores de la materia</h2>
       <Table>
         <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead></TableRow></TableHeader>
         <TableBody>
@@ -126,22 +144,39 @@ async function PanelAdmin() {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="font-serif text-2xl">Mentores</h1>
-        <div className="flex flex-wrap items-center gap-6">
-          <EnlacesReuniones esAdmin />
-          <Link href="/mentores/match" className={buttonVariants()}>Match de proyectos</Link>
-        </div>
+      <Encabezado
+        titulo="Mentores"
+        bajada="Elegí qué querés hacer. Los números te muestran lo que el asistente dejó para que revises."
+      />
+
+      <div className="mb-12 grid gap-4 md:grid-cols-3">
+        <Accion
+          href={alertasMatch.count ? "/mentores/match#alertas" : "/mentores/match"}
+          icono={UsersRound}
+          titulo="Asignar mentores a proyectos"
+          descripcion="El asistente te sugiere hasta 3 mentores por proyecto. Vos elegís cuál queda."
+          boton="Ir a asignar"
+          pendientes={alertasMatch.count ?? 0}
+          textoPendientes={alertasMatch.count === 1 ? "alerta" : "alertas"}
+        />
+        <Accion
+          href="/mentores/reuniones"
+          icono={CalendarDays}
+          titulo="Reuniones"
+          descripcion="Cargar una reunión entre un mentor y un equipo. El asistente le manda al mentor un resumen el día antes."
+          boton="Ver reuniones"
+        />
+        <Accion
+          href="/mentores/feedback"
+          icono={MessageSquareText}
+          titulo="Cómo les fue en las reuniones"
+          descripcion="Lo que contestaron mentores y alumnos después de cada reunión, resumido y sin nombres."
+          boton="Ver el feedback"
+        />
       </div>
 
-      {!!alertasMatch.count && (
-        <Link href="/mentores/match#alertas" className="mb-6 flex items-center gap-2 border border-primary p-4 text-sm hover:bg-card">
-          <TriangleAlert className="size-4" />
-          Tenés {alertasMatch.count} {alertasMatch.count === 1 ? "alerta" : "alertas"} del Match sin revisar
-          <span className="underline underline-offset-4">Ver alertas</span>
-        </Link>
-      )}
-
+      <h2 className="mb-1 font-serif text-xl">Perfiles de los mentores</h2>
+      <p className="mb-4 text-base text-[#555]">Cómo viene la carga de perfiles que hace cada mentor.</p>
       <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           {
@@ -208,7 +243,7 @@ async function PanelAdmin() {
                 </span>
                 <form action={marcarRevisado}>
                   <input type="hidden" name="evento_id" value={e.id} />
-                  <button type="submit" className="shrink-0 text-[#666] hover:text-primary">Marcar revisado</button>
+                  <button type="submit" className={buttonVariants({ variant: "outline", size: "lg" })}>Ya lo revisé</button>
                 </form>
               </li>
             ))}

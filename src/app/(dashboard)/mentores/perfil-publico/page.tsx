@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { FormularioPerfil } from "./_components/formulario";
+import { Encabezado } from "../_components/accion";
 
 export default async function CargarPerfil() {
   const persona = await requireRol("mentor");
@@ -16,8 +17,11 @@ export default async function CargarPerfil() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 font-serif text-2xl">Tu perfil de mentor</h1>
-      <p className="mb-8 text-sm text-[#666]">Así te van a ver los alumnos cuando elijan con quién mentorear su proyecto.</p>
+      <Encabezado
+        titulo="Tu perfil de mentor"
+        bajada="Así te van a ver los alumnos y el coordinador cuando busquen un mentor para un proyecto."
+        volver={{ href: "/mentores", texto: "Volver al inicio de Mentores" }}
+      />
       <FormularioPerfil perfil={perfil} nombre={persona.nombre} />
     </div>
   );

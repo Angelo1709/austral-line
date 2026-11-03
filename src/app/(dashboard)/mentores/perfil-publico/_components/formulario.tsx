@@ -107,28 +107,30 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
 
       {!modoManual && (
         <div className="grid gap-2">
-          <Label htmlFor="texto">Contanos sobre vos, en tus palabras</Label>
-          <p className="text-sm text-[#666]">
-            Empresa, cargo, industria, años de experiencia, en qué podés ayudar a los alumnos y tu LinkedIn si tenés.
-            El agente lo organiza por vos; no hace falta llenar un formulario.
+          <Label htmlFor="texto" className="text-lg font-medium">Paso 1. Contanos sobre vos, como si se lo dijeras a alguien</Label>
+          <p className="text-base leading-relaxed text-[#555]">
+            Dónde trabajás, de qué, hace cuántos años, en qué podés ayudar a los alumnos y tu LinkedIn si tenés.
+            No hace falta que quede prolijo: el asistente lo ordena por vos.
           </p>
           <textarea
             id="texto"
-            rows={6}
+            rows={7}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Ej: trabajo en una fintech como líder de producto, 8 años de experiencia, puedo ayudar con pricing y validación..."
-            className="w-full rounded-lg border border-input bg-transparent p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-full rounded-lg border border-input bg-transparent p-3 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
           />
+          <p className="mt-2 text-lg font-medium">Paso 2. Apretá el botón para que el asistente lo ordene</p>
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="button" variant="outline" onClick={onOrganizar} disabled={pendiente || !texto.trim()}>
+            <Button type="button" onClick={onOrganizar} disabled={pendiente || !texto.trim()} className="h-12 px-5 text-base">
               {enCurso("organizar") ? <Loader2 className="animate-spin" /> : <Sparkles />}
-              {enCurso("organizar") ? "Organizando…" : "Organizar con IA"}
+              {enCurso("organizar") ? "Ordenando, esperá unos segundos…" : "Ordenar mi perfil"}
             </Button>
-            <button type="button" onClick={() => setModoManual(true)} className="text-sm text-[#666] hover:text-primary">
-              o cargalo a mano
-            </button>
+            <Button type="button" variant="outline" onClick={() => setModoManual(true)} className="h-12 px-5 text-base">
+              Prefiero completarlo yo, campo por campo
+            </Button>
           </div>
+          {!texto.trim() && <p className="text-sm text-[#555]">Primero escribí algo en el cuadro de arriba.</p>}
         </div>
       )}
 
@@ -154,7 +156,8 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
 
       {propuesta && (
         <div className="grid gap-6 border bg-card p-5">
-          <p className="text-sm text-[#666]">Así quedaría tu perfil. Donde ya tenías un dato cargado, elegí si lo mantenés o lo reemplazás.</p>
+          <p className="text-lg font-medium">Paso 3. Revisá cómo quedó</p>
+          <p className="text-base text-[#555]">Así quedaría tu perfil. Donde ya tenías un dato cargado, tocá la opción que querés dejar. Si está bien, apretá “Publicar mi perfil” abajo.</p>
           {camposPerfil.map(({ campo, label }) => {
             const actual = perfil?.[campo] ?? null;
             const nuevo = propuesta.propuesta[campo] ?? null;
@@ -197,10 +200,10 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
       {modoManual && (
         <div className="grid gap-6 border bg-card p-5">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-sm text-[#666]">Cargá los datos directamente, sin el asistente de IA.</p>
-            <button type="button" onClick={() => setModoManual(false)} className="text-sm text-[#666] hover:text-primary">
-              Volver al asistente
-            </button>
+            <p className="text-base text-[#555]">Completá cada dato. Cuando termines, apretá “Publicar mi perfil” abajo.</p>
+            <Button type="button" variant="outline" onClick={() => setModoManual(false)} className="h-11 px-4 text-base">
+              Volver a escribirlo libre
+            </Button>
           </div>
           {camposPerfil.map(({ campo, label, largo }) => (
             <div key={campo} className="grid gap-2">
@@ -241,21 +244,26 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
       )}
 
       {errores.length > 0 && (
-        <ul className="list-inside list-disc text-sm text-destructive">
+        <ul role="alert" className="list-inside list-disc border-l-2 border-destructive pl-4 text-base text-destructive">
           {errores.map((e) => <li key={e}>{e}</li>)}
         </ul>
       )}
-      {mensaje && <p className="text-sm text-primary">{mensaje}</p>}
+      {mensaje && <p role="status" className="border-l-2 border-primary pl-4 text-base font-medium text-primary">{mensaje}</p>}
 
-      <div className="sticky bottom-0 flex justify-end gap-3 border-t bg-background py-4">
-        <Button type="button" variant="outline" onClick={() => onGuardar(false)} disabled={pendiente}>
-          {enCurso("borrador") && <Loader2 className="animate-spin" />}
-          {enCurso("borrador") ? "Guardando…" : "Guardar borrador"}
-        </Button>
-        <Button type="button" size="lg" onClick={() => onGuardar(true)} disabled={pendiente}>
-          {enCurso("publicar") && <Loader2 className="animate-spin" />}
-          {enCurso("publicar") ? "Guardando…" : publicado ? "Guardar y actualizar" : "Publicar perfil"}
-        </Button>
+      <div className="sticky bottom-0 grid gap-2 border-t bg-background py-4">
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button type="button" variant="outline" onClick={() => onGuardar(false)} disabled={pendiente} className="h-12 px-5 text-base">
+            {enCurso("borrador") && <Loader2 className="animate-spin" />}
+            {enCurso("borrador") ? "Guardando…" : "Guardar y seguir después"}
+          </Button>
+          <Button type="button" onClick={() => onGuardar(true)} disabled={pendiente} className="h-12 px-5 text-base">
+            {enCurso("publicar") && <Loader2 className="animate-spin" />}
+            {enCurso("publicar") ? "Guardando…" : publicado ? "Guardar cambios" : "Publicar mi perfil"}
+          </Button>
+        </div>
+        <p className="text-right text-sm text-[#555]">
+          {publicado ? "Los alumnos ven los cambios apenas guardás." : "“Guardar y seguir después” no lo muestra a los alumnos. “Publicar” sí."}
+        </p>
       </div>
     </div>
   );

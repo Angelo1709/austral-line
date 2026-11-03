@@ -3,7 +3,8 @@ import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Encabezado } from "../_components/accion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -59,9 +60,9 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
           <TableCell>{r.proyectos.nombre}</TableCell>
           {esAdmin && <TableCell className="text-[#666]">{r.mentor.nombre}</TableCell>}
           <TableCell><Badge variant={variantes[estado.tono]}>{estado.texto}</Badge></TableCell>
-          {conNotas && <TableCell className="text-[#666]">{r.cancelada ? "—" : r.notas ? "Cargadas" : "Sin notas"}</TableCell>}
+          {conNotas && <TableCell className={r.cancelada || r.notas ? "text-[#555]" : "font-medium text-destructive"}>{r.cancelada ? "—" : r.notas ? "Cargadas" : "Faltan cargar"}</TableCell>}
           <TableCell className="text-right">
-            <Link href={`/mentores/reuniones/${r.id}`} className="text-sm underline underline-offset-4 hover:text-primary">Ver</Link>
+            <Link href={`/mentores/reuniones/${r.id}`} className={buttonVariants({ variant: "outline", className: "h-10 px-4 text-base" })}>{conNotas && !r.cancelada && !r.notas ? "Cargar notas" : "Abrir"}</Link>
           </TableCell>
         </TableRow>
       );
@@ -82,21 +83,22 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Link href="/mentores" className="text-sm text-[#666] hover:text-primary">← Mentores</Link>
-      <h1 className="mt-6 font-serif text-2xl">Reuniones</h1>
-      <p className="mt-1 mb-8 text-sm text-[#666]">
-        24 h antes de cada reunión, el asistente le manda al mentor un resumen para prepararla: el equipo, en qué está el proyecto
-        y qué quedó pendiente. Después de la reunión, cargá las notas: son lo que usa para la próxima.
-      </p>
+      <Encabezado
+        titulo={esAdmin ? "Reuniones" : "Mis reuniones"}
+        bajada={esAdmin
+          ? "Cargá cada reunión entre un mentor y un equipo. El día antes, el asistente le manda al mentor un resumen para prepararla."
+          : "El día antes de cada reunión te llega por mail un resumen para prepararte. Cuando termine, apretá “Cargar notas” y anotá qué se habló: sirve para la próxima."}
+        volver={{ href: "/mentores", texto: "Volver al inicio de Mentores" }}
+      />
 
-      {(modoPrueba() || !hayIA()) && (
+      {esAdmin && (modoPrueba() || !hayIA()) && (
         <div className="mb-6 grid gap-1 border-l-2 border-primary pl-4 text-sm text-[#666]">
           {modoPrueba() && <p>Modo prueba: falta la clave de Resend (<code>RESEND_API_KEY</code>), así que los resúmenes se registran como &quot;simulado&quot; y no sale ningún mail.</p>}
           {!hayIA() && <p>Falta la clave de IA (<code>AI_GATEWAY_API_KEY</code>): los resúmenes salen solo con los datos cargados, sin la síntesis ni los avisos de la IA.</p>}
         </div>
       )}
-      {typeof ok === "string" && <p className="mb-6 border-l-2 border-primary pl-4 text-sm">{ok}</p>}
-      {typeof error === "string" && <p className="mb-6 border-l-2 border-destructive pl-4 text-sm text-destructive">{error}</p>}
+      {typeof ok === "string" && <p role="status" className="mb-6 border-l-4 border-primary bg-card p-4 text-base">✓ {ok}</p>}
+      {typeof error === "string" && <p role="alert" className="mb-6 border-l-4 border-destructive bg-destructive/5 p-4 text-base text-destructive">{error}</p>}
 
       {esAdmin && (
         <section className="mb-12">
@@ -146,11 +148,21 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
       )}
 
       <section className="mb-12">
-        <h2 className="mb-4 font-serif text-xl">Nueva reunión</h2>
+        <h2 className="mb-4 font-serif text-xl">Próximas reuniones</h2>
+        {proximas.length === 0 ? (
+          <p className="border p-6 text-center text-sm text-[#666]">No tenés reuniones próximas. Podés agendar una abajo.</p>
+        ) : (
+          <Table>{encabezado(false)}<TableBody>{filas(proximas, false)}</TableBody></Table>
+        )}
+      </section>
+
+      <section className="mb-12">
+        <h2 className="mb-1 font-serif text-xl">Agendar una reunión nueva</h2>
+        <p className="mb-4 text-base text-[#555]">Completá los datos y apretá “Guardar reunión”.</p>
         <form action={crearReunion} className="grid gap-4 border p-6 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="proyecto_id">Proyecto</Label>
-            <select id="proyecto_id" name="proyecto_id" required defaultValue="" className="h-9 border bg-background px-2 text-sm">
+            <select id="proyecto_id" name="proyecto_id" required defaultValue="" className="h-11 border bg-background px-3 text-base">
               <option value="" disabled>Elegí un proyecto</option>
               {proyectos.data!.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
@@ -158,7 +170,7 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
           {esAdmin && (
             <div className="grid gap-2">
               <Label htmlFor="mentor_id">Mentor</Label>
-              <select id="mentor_id" name="mentor_id" required defaultValue="" className="h-9 border bg-background px-2 text-sm">
+              <select id="mentor_id" name="mentor_id" required defaultValue="" className="h-11 border bg-background px-3 text-base">
                 <option value="" disabled>Elegí un mentor</option>
                 {mentores.data!.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </select>
@@ -166,11 +178,11 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
           )}
           <div className="grid gap-2">
             <Label htmlFor="inicio">Fecha y hora</Label>
-            <Input id="inicio" name="inicio" type="datetime-local" required />
+            <Input id="inicio" name="inicio" type="datetime-local" required className="h-11 text-base" />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="lugar">Lugar o link</Label>
-            <Input id="lugar" name="lugar" placeholder="Sala 3 o https://meet.google.com/…" />
+            <Label htmlFor="lugar">Lugar o link (opcional)</Label>
+            <Input id="lugar" name="lugar" placeholder="Ej: Sala 3, o el link de Meet" className="h-11 text-base" />
           </div>
           <div className="md:col-span-2">
             <BotonGuardar pendiente="Guardando y armando el resumen…">Guardar reunión</BotonGuardar>
@@ -178,17 +190,8 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
         </form>
       </section>
 
-      <section className="mb-12">
-        <h2 className="mb-4 font-serif text-xl">Próximas</h2>
-        {proximas.length === 0 ? (
-          <p className="border p-6 text-center text-sm text-[#666]">No hay reuniones próximas.</p>
-        ) : (
-          <Table>{encabezado(false)}<TableBody>{filas(proximas, false)}</TableBody></Table>
-        )}
-      </section>
-
       <section>
-        <h2 className="mb-4 font-serif text-xl">Anteriores</h2>
+        <h2 className="mb-4 font-serif text-xl">Reuniones que ya pasaron</h2>
         {anteriores.length === 0 ? (
           <p className="border p-6 text-center text-sm text-[#666]">Todavía no hubo reuniones.</p>
         ) : (

@@ -9,7 +9,7 @@ import { BotonGuardar } from "../../reuniones/boton-guardar";
 import { responderEncuesta } from "../../feedback/acciones";
 import { puntajes } from "../../feedback/reglas";
 
-const areaTexto = "w-full border bg-transparent p-3 text-sm outline-none focus-visible:border-ring";
+const areaTexto = "w-full border bg-transparent p-3 text-base outline-none focus-visible:border-ring";
 
 export default async function Encuesta({ params, searchParams }: PageProps<"/mentores/mi-feedback/[id]">) {
   await requireRol("mentor", "alumno");
@@ -27,14 +27,14 @@ export default async function Encuesta({ params, searchParams }: PageProps<"/men
   const contestada = e.estado === "respondida";
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href="/mentores/mi-feedback" className="text-sm text-[#666] hover:text-primary">← Mi feedback</Link>
+      <Link href="/mentores/mi-feedback" className="inline-flex min-h-11 items-center text-base text-[#555] hover:text-primary">← Volver a mis encuestas</Link>
       <h1 className="mt-6 font-serif text-2xl">¿Cómo te fue en la reunión?</h1>
       <p className="mt-1 mb-8 text-sm text-[#666]">
         {e.proyecto_nombre} · con {e.con_quien} · {fechaHora(e.reunion_inicio)}
       </p>
 
-      {typeof ok === "string" && <p className="mb-6 border-l-2 border-primary pl-4 text-sm">{ok}</p>}
-      {typeof error === "string" && <p className="mb-6 border-l-2 border-destructive pl-4 text-sm text-destructive">{error}</p>}
+      {typeof ok === "string" && <p role="status" className="mb-6 border-l-4 border-primary bg-card p-4 text-base">✓ {ok}</p>}
+      {typeof error === "string" && <p role="alert" className="mb-6 border-l-4 border-destructive bg-destructive/5 p-4 text-base text-destructive">{error}</p>}
 
       {contestada ? (
         <dl className="grid gap-6 border p-6 text-sm">
@@ -47,7 +47,7 @@ export default async function Encuesta({ params, searchParams }: PageProps<"/men
         <form action={responderEncuesta} className="grid gap-8">
           <input type="hidden" name="id" value={e.id} />
           <fieldset className="grid gap-3">
-            <legend className="mb-3 text-sm font-medium">¿Qué tan útil fue la reunión?</legend>
+            <legend className="mb-3 text-base font-medium">1. ¿Qué tan útil fue la reunión? Tocá un número.</legend>
             <div className="grid grid-cols-5 gap-px border bg-border">
               {[1, 2, 3, 4, 5].map((n) => (
                 <label key={n} className="flex cursor-pointer flex-col items-center gap-1 bg-background p-4 text-center has-[:checked]:bg-primary has-[:checked]:text-primary-foreground">
@@ -74,7 +74,7 @@ export default async function Encuesta({ params, searchParams }: PageProps<"/men
           <p className="text-sm text-[#666]">
             Tus respuestas las lee solo el coordinador de la materia: {e.papel === "mentor" ? "el equipo" : e.con_quien} no las ve.
           </p>
-          <div><BotonGuardar pendiente="Enviando…">Enviar</BotonGuardar></div>
+          <div><BotonGuardar pendiente="Enviando…">Enviar mi respuesta</BotonGuardar></div>
         </form>
       )}
     </div>

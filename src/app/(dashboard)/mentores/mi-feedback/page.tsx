@@ -4,6 +4,8 @@ import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Encabezado } from "../_components/accion";
 import { urlBase } from "../reuniones/agente";
 import { fechaHora } from "../reuniones/fechas";
 import { pedirFeedback } from "../feedback/agente";
@@ -36,26 +38,25 @@ export default async function MiFeedback() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      {persona.rol === "mentor" && <Link href="/mentores" className="text-sm text-[#666] hover:text-primary">← Mentores</Link>}
-      <h1 className="mt-6 font-serif text-2xl">Mi feedback</h1>
-      <p className="mt-1 mb-10 text-sm text-[#666]">
-        Después de cada reunión de mentoría te preguntamos cómo te fue. Lo que contestás lo lee solo el coordinador de la
-        materia: {persona.rol === "mentor" ? "el equipo" : "tu mentor"} no ve tus respuestas.
-      </p>
+      <Encabezado
+        titulo="¿Cómo te fue en tus reuniones?"
+        bajada={`Después de cada reunión te hacemos 3 preguntas cortas. Tardás 1 minuto. Lo que contestás lo lee solo el coordinador de la materia: ${persona.rol === "mentor" ? "el equipo" : "tu mentor"} no ve tus respuestas.`}
+        volver={persona.rol === "mentor" ? { href: "/mentores", texto: "Volver al inicio de Mentores" } : undefined}
+      />
 
       <section className="mb-12">
-        <h2 className="mb-4 font-serif text-xl">Para contestar</h2>
+        <h2 className="mb-4 font-serif text-xl">Te faltan contestar {pendientes.length}</h2>
         {pendientes.length === 0 ? (
-          <p className="border p-6 text-center text-sm text-[#666]">No tenés encuestas pendientes.</p>
+          <p className="border p-6 text-center text-base text-[#555]">¡Listo! No tenés nada para contestar. Cuando termine tu próxima reunión, te va a aparecer acá.</p>
         ) : (
           <div className="grid gap-px border bg-border">
             {pendientes.map((e) => (
               <Link key={e.id} href={`/mentores/mi-feedback/${e.id}`} className="flex flex-wrap items-center justify-between gap-3 bg-background p-5 hover:bg-card">
                 <div>
-                  <p className="font-medium">{e.proyecto_nombre} · con {e.con_quien}</p>
-                  <p className="text-sm text-[#666]">{fechaHora(e.reunion_inicio)}</p>
+                  <p className="text-lg font-medium">{e.proyecto_nombre} · con {e.con_quien}</p>
+                  <p className="text-base text-[#555]">Reunión del {fechaHora(e.reunion_inicio)}</p>
                 </div>
-                <span className="text-sm underline underline-offset-4">Contestar</span>
+                <span className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>Contestar</span>
               </Link>
             ))}
           </div>
