@@ -4,6 +4,15 @@ import { fechaCorta, fechaHora } from "./fechas";
 export type DatosResumen = {
   reunion: { id: string; inicio: string; lugar: string | null };
   mentor: { nombre: string; email: string };
+  // Perfil publicado del mentor. null = todavía no lo publicó (los borradores no se usan).
+  perfilMentor: {
+    empresa: string | null;
+    cargo: string | null;
+    industria: string | null;
+    anios_experiencia: number | null;
+    bio: string | null;
+    areas_ayuda: string | null;
+  } | null;
   proyecto: { nombre: string; descripcion: string | null; estado: string };
   integrantes: string[];
   // Reuniones anteriores de este mentor con este proyecto, de la más reciente a la más vieja.
@@ -42,7 +51,12 @@ export const estadosProyecto: Record<string, string> = {
 };
 
 export function mailResumen(d: DatosResumen, ia: Sintesis, url: string) {
-  const { reunion, mentor, proyecto, integrantes, anteriores, proximoEvento, faltantes } = d;
+  const { reunion, mentor, perfilMentor, proyecto, integrantes, anteriores, proximoEvento, faltantes } = d;
+  const trayectoria = perfilMentor && [
+    [perfilMentor.cargo, perfilMentor.empresa].filter(Boolean).join(" en "),
+    perfilMentor.industria,
+    perfilMentor.anios_experiencia === null ? null : `${perfilMentor.anios_experiencia} años de experiencia`,
+  ].filter(Boolean).join(" · ");
   const asunto = `Resumen para tu reunión con ${proyecto.nombre} · ${fechaCorta(reunion.inicio)}`;
   const html = marco([
     titulo(`Tu reunión con ${proyecto.nombre}`),
@@ -57,6 +71,12 @@ export function mailResumen(d: DatosResumen, ia: Sintesis, url: string) {
       subtitulo("En pocas palabras"),
       parrafo(multilinea(ia.sintesis)),
       ...(ia.temas.length ? [subtitulo("Temas para charlar"), lista(ia.temas.map(esc))] : []),
+    ] : []),
+
+    ...(perfilMentor && (trayectoria || perfilMentor.areas_ayuda) ? [
+      subtitulo("Tu perfil de mentor"),
+      ...(trayectoria ? [parrafo(esc(trayectoria))] : []),
+      ...(perfilMentor.areas_ayuda ? [parrafo(`<strong>En qué podés ayudar:</strong> ${multilinea(perfilMentor.areas_ayuda)}`)] : []),
     ] : []),
 
     subtitulo("El proyecto"),

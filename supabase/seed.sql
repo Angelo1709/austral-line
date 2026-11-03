@@ -266,3 +266,9 @@ where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@al
 -- GRUPO ALUMNOS: el Kickoff pide entrega grupal e individual (para probar las entregas individuales).
 insert into alumnos_hitos_tipo (evento_id, tipo)
 select id, 'ambas' from eventos where nombre = 'Kickoff';
+
+-- GRUPO MENTORES: una reunión de Pablo, que tiene perfil publicado, para ver el resumen con perfil (Marta no tiene).
+insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar)
+select p.id, m.id, now() + interval '4 days', 'Sala 3'
+from proyectos p, personas m
+where p.nombre = 'Tutorly' and m.email = 'pablo@empresa.com';

@@ -1,6 +1,6 @@
 // GRUPO MENTORES — agente de resumen pre-reunión.
-// Antes de cada reunión junta lo cargado en la app (proyecto, equipo, reuniones anteriores de ESE mentor con
-// ESE equipo y el próximo evento), arma un resumen y se lo programa al mentor por mail 24 h antes.
+// Antes de cada reunión junta lo cargado en la app (perfil publicado del mentor, proyecto, equipo, reuniones
+// anteriores de ESE mentor con ESE equipo y el próximo evento), arma un resumen y se lo programa al mentor por mail 24 h antes.
 // Reglas del relevamiento: solo datos de las personas de esa reunión, no inventa lo que falta, avisa al
 // coordinador si falta info importante o ve un proyecto trabado o un conflicto, y lo único que escribe son
 // resúmenes (mentores_resumenes). Corre con la sesión de quien guarda, así que respeta sus permisos.
@@ -65,11 +65,13 @@ Antes de cada reunión entre un mentor y un equipo, le preparás al mentor un re
 Reglas:
 - Usá SOLO los datos que te paso. Si algo no está, no lo completes ni lo supongas: lo que falta ya se le muestra al mentor aparte.
 - Hablá solo del proyecto y de las personas de esta reunión. Si las notas mencionan a otras personas o proyectos, no las incluyas.
+- Si hay "perfil_mentor", orientá la síntesis y los temas hacia lo que ese mentor puede aportar a este proyecto, sin
+  atribuirle experiencia que no figure en el perfil. Si no hay perfil, no supongas nada sobre su experiencia.
 - En "sintesis", si es la primera reunión, decilo y basate en la descripción del proyecto.
 - Completá "aviso" solo si hay algo que el coordinador tiene que mirar: falta información importante para la reunión,
   el proyecto parece trabado (los mismos pendientes reunión tras reunión, sin avances) o las notas muestran un conflicto
   (dentro del equipo o con el mentor). Si está todo bien, dejalo vacío.
-- Datos menores que faltan (el lugar o link, las notas de una reunión) no son motivo de aviso: el mentor ya los ve en
+- Datos menores que faltan (el lugar o link, las notas de una reunión, el perfil del mentor) no son motivo de aviso: el mentor ya los ve en
   "falta_informacion" y los resuelve él.
 Respondé en español rioplatense, claro y sin exagerar.`;
 
@@ -83,6 +85,7 @@ async function sintetizar(d: DatosResumen): Promise<{ ia: Sintesis; aviso: strin
       prompt: JSON.stringify({
         reunion: { cuando: fechaHora(d.reunion.inicio), lugar: d.reunion.lugar },
         mentor: d.mentor.nombre,
+        perfil_mentor: d.perfilMentor,
         equipo: d.integrantes,
         proyecto: { nombre: d.proyecto.nombre, estado: estadosProyecto[d.proyecto.estado] ?? d.proyecto.estado, descripcion: d.proyecto.descripcion },
         reuniones_anteriores: d.anteriores.map((r) => ({ cuando: fechaHora(r.inicio), notas: r.notas, proximos_pasos: r.proximos_pasos })),
@@ -157,7 +160,14 @@ export async function prepararResumen(
   }
 
   const ahoraIso = new Date(ahora).toISOString();
-  const [integrantes, anteriores, evento] = await Promise.all([
+  const [perfil, integrantes, anteriores, evento] = await Promise.all([
+    // Solo el perfil publicado: el borrador todavía no pasó la revisión del mentor.
+    supabase
+      .from("mentores_perfil")
+      .select("empresa, cargo, industria, anios_experiencia, bio, areas_ayuda")
+      .eq("persona_id", r.mentor_id)
+      .eq("estado", "publicado")
+      .maybeSingle(),
     supabase.from("proyecto_integrantes").select("personas(nombre)").eq("proyecto_id", r.proyecto_id),
     // Solo reuniones que ya pasaron, de este mentor con este equipo: nada de otros mentores ni proyectos.
     supabase
@@ -171,11 +181,12 @@ export async function prepararResumen(
       .limit(MAX_ANTERIORES),
     supabase.from("eventos").select("nombre, inicio, lugar").gte("inicio", ahoraIso).order("inicio").limit(1).maybeSingle(),
   ]);
-  for (const q of [integrantes, anteriores, evento]) if (q.error) throw q.error;
+  for (const q of [perfil, integrantes, anteriores, evento]) if (q.error) throw q.error;
 
   const datos: DatosResumen = {
     reunion: { id: r.id, inicio: r.inicio, lugar: r.lugar },
     mentor: { nombre: r.mentor.nombre, email: mailMentor },
+    perfilMentor: perfil.data,
     proyecto: r.proyectos,
     integrantes: integrantes.data!.map((i) => i.personas.nombre),
     anteriores: anteriores.data!,
@@ -184,6 +195,7 @@ export async function prepararResumen(
   };
   datos.faltantes = [
     ...(!datos.reunion.lugar ? ["Lugar o link de la reunión"] : []),
+    ...(!datos.perfilMentor ? ["Tu perfil de mentor publicado (con él, los temas salen más a tu medida)"] : []),
     ...(!datos.proyecto.descripcion ? ["Descripción del proyecto"] : []),
     ...(datos.integrantes.length === 0 ? ["Integrantes del proyecto"] : []),
     ...datos.anteriores.filter((a) => !a.notas).map((a) => `Notas de la reunión del ${fechaCorta(a.inicio)}`),
